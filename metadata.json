@@ -1,0 +1,6 @@
+{
+  "name": "Weave",
+  "description": "High-end minimalist ADHD productivity mobile app with fluid navigation, voice brain dump, and smart micro-step guardrails.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
