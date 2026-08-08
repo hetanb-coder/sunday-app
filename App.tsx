@@ -1,319 +1,67 @@
-// App.tsx - Unified Single-File Master for Weave
+import React, { useState } from 'react';
 import { registerRootComponent } from 'expo';
-import {
-  Award,
-  BarChart2,
-  CheckCircle2,
-  Clock,
-  Crown,
-  Home,
-  Mic,
-  Plus,
-  Zap
-} from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
-import {
-  Dimensions,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Check, ChevronRight, Clock3, Flame, Layers3, Plus, Sparkles, Trash2, X, Zap } from 'lucide-react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
-const { width, height } = Dimensions.get('window');
+type Category = 'work' | 'life' | 'health' | 'money' | 'growth' | 'quick';
+type Step = { id: string; title: string; completed: boolean };
+type Task = { id: string; title: string; category: Category; minutes: number; completed: boolean; isFocusHero?: boolean; microSteps: Step[] };
+
+const COLORS: Record<Category, { accent: string; soft: string; name: string }> = {
+  work: { accent: '#FF7A59', soft: '#FFF3EE', name: 'Work' }, life: { accent: '#F43F5E', soft: '#FFF1F2', name: 'Life' },
+  health: { accent: '#F59E0B', soft: '#FFFBEB', name: 'Health' }, money: { accent: '#10B981', soft: '#ECFDF5', name: 'Money' },
+  growth: { accent: '#8B5CF6', soft: '#F5F3FF', name: 'Growth' }, quick: { accent: '#0EA5E9', soft: '#F0F9FF', name: 'Quick' },
+};
+
+const INITIAL: Task[] = [
+  { id: 'hero', title: 'Draft Product Pitch Deck', category: 'work', minutes: 20, completed: false, isFocusHero: true, microSteps: [
+    { id: '1', title: 'Open slide application & pick minimal template', completed: true }, { id: '2', title: 'Write 1-sentence core problem statement', completed: true },
+    { id: '3', title: 'List 3 key feature highlights', completed: false }, { id: '4', title: 'Add call to action slide', completed: false },
+  ]},
+  { id: '2', title: 'Reset Workspace & Desk', category: 'life', minutes: 10, completed: false, microSteps: [
+    { id: '5', title: 'Clear empty cups & mugs', completed: true }, { id: '6', title: 'File loose paper notes into drawer', completed: false }, { id: '7', title: 'Wipe down keyboard & desk mat', completed: false },
+  ]},
+  { id: '3', title: 'Mindful Morning Stretch', category: 'health', minutes: 8, completed: false, microSteps: [
+    { id: '8', title: '2 minutes neck & shoulder rolls', completed: true }, { id: '9', title: 'Hamstring stretch left & right side', completed: true },
+  ]},
+  { id: '4', title: 'Quarterly Budget & Savings Goal', category: 'money', minutes: 15, completed: false, microSteps: [
+    { id: '10', title: 'Review last month cash flow', completed: true }, { id: '11', title: 'Set aside 20% into High Yield account', completed: false },
+  ]},
+  { id: '5', title: 'Read Chapter 4 of Deep Work', category: 'growth', minutes: 15, completed: false, microSteps: [
+    { id: '12', title: 'Set 15 minute timer', completed: true }, { id: '13', title: 'Highlight 3 actionable key takeaways', completed: false },
+  ]},
+];
 
 export default function App() {
-  // App stages: 'splash' -> 'onboarding' -> 'paywall' -> 'main'
-  const [appStage, setAppStage] = useState<'splash' | 'onboarding' | 'paywall' | 'main'>('splash');
-  const [activeTab, setActiveTab] = useState<string>('home');
-  const [isPro, setIsPro] = useState<boolean>(false);
-  const [globalConfetti, setGlobalConfetti] = useState<boolean>(false);
+  const [tasks, setTasks] = useState(INITIAL); const [tab, setTab] = useState('home'); const [selected, setSelected] = useState<Task | null>(null);
+  const [newOpen, setNewOpen] = useState(false); const [title, setTitle] = useState(''); const [category, setCategory] = useState<Category>('work'); const [toast, setToast] = useState('');
+  const completed = tasks.filter(t => t.completed).length; const percent = tasks.length ? Math.round(completed / tasks.length * 100) : 0;
+  const hero = tasks.find(t => t.isFocusHero && !t.completed) || tasks.find(t => !t.completed) || tasks[0]; const regular = tasks.filter(t => t.id !== hero?.id);
+  const notify = (text: string) => { setToast(text); setTimeout(() => setToast(''), 2200); };
+  const toggleStep = (taskId: string, stepId: string) => setTasks(ts => ts.map(t => t.id !== taskId ? t : { ...t, microSteps: t.microSteps.map(s => s.id === stepId ? { ...s, completed: !s.completed } : s) }));
+  const complete = (task: Task) => { if (!task.microSteps.every(s => s.completed)) return notify('Complete all micro-steps first to unlock flow completion ✨'); setTasks(ts => ts.map(t => t.id === task.id ? { ...t, completed: !t.completed } : t)); notify(task.completed ? 'Goal reopened' : 'Goal completed! Keep momentum going 🔥'); };
+  const create = () => { if (!title.trim()) return; const now = Date.now(); setTasks(ts => [{ id: String(now), title: title.trim(), category, minutes: 15, completed: false, microSteps: [{ id: `${now}a`, title: 'Open workspace & prep materials', completed: false }, { id: `${now}b`, title: 'Execute first 5 minutes of focused effort', completed: false }, { id: `${now}c`, title: 'Review output and check complete', completed: false }] }, ...ts]); setTitle(''); setNewOpen(false); notify('Task added to your Daily Flow'); };
 
-  return (
-    <SafeAreaView style={styles.safeArea}>
-      {/* 1. Splash Screen */}
-      {appStage === 'splash' && (
-        <SplashScreen onFinish={() => setAppStage('onboarding')} />
-      )}
-
-      {/* 2. Onboarding Flow */}
-      {appStage === 'onboarding' && (
-        <OnboardingFlowScreen onComplete={() => setAppStage('paywall')} />
-      )}
-
-      {/* 3. Paywall Screen */}
-      {appStage === 'paywall' && (
-        <PaywallScreen onContinue={() => setAppStage('main')} />
-      )}
-
-      {/* 4. Main App Navigator */}
-      {appStage === 'main' && (
-        <View style={styles.screenContainer}>
-          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-            {activeTab === 'home' && <HomeScreen onTriggerConfetti={() => setGlobalConfetti(true)} />}
-            {activeTab === 'dashboard' && <DashboardScreen />}
-            {activeTab === 'voice' && <InteractiveVoiceDemoScreen />}
-            {activeTab === 'paywall' && <PaywallPlaceholder />}
-          </ScrollView>
-
-          {/* Floating Plus Button on Home Tab */}
-          {activeTab === 'home' && <FloatingActionButton />}
-
-          {/* Floating Pill Bottom Navigation Bar */}
-          <View style={styles.floatingNavWrapper} pointerEvents="box-none">
-            <View style={styles.floatingNavBar}>
-              <TabButton id="home" label="Home" icon={Home} activeTab={activeTab} onPress={() => setActiveTab('home')} />
-              <TabButton id="dashboard" label="Flow" icon={BarChart2} activeTab={activeTab} onPress={() => setActiveTab('dashboard')} />
-              <TabButton id="voice" label="Voice" icon={Mic} activeTab={activeTab} onPress={() => setActiveTab('voice')} />
-              <TabButton id="paywall" label="Pro" icon={Crown} activeTab={activeTab} onPress={() => setActiveTab('paywall')} />
-            </View>
-          </View>
-
-          {globalConfetti && <ConfettiOverlay onFinish={() => setGlobalConfetti(false)} />}
-        </View>
-      )}
-    </SafeAreaView>
-  );
+  return <SafeAreaView style={styles.safe}>
+    {tab === 'home' ? <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}><View style={styles.container}>
+      <View style={styles.header}><View style={styles.brandRow}><View style={styles.logo}><Text style={styles.logoText}>W</Text></View><View><Text style={styles.brand}>Weave</Text><Text style={styles.tagline}>Minimalist Daily Flow</Text></View></View><View style={styles.flow}><View style={styles.dot}/><Text style={styles.flowText}>Flow State Active</Text></View></View>
+      <View style={styles.momentum}><View style={styles.row}><View style={styles.row}><View style={styles.zap}><Zap size={14} color="#FF7A59" fill="#FF7A59"/></View><Text style={styles.momentumTitle}>Daily Momentum</Text></View><Text style={styles.momentumValue}>{completed}/{tasks.length} Goals ({percent}%)</Text></View><View style={styles.track}><View style={[styles.fill,{width:`${percent}%`}]}/></View></View>
+      {hero && <Focus task={hero} open={() => setSelected(hero)} complete={() => complete(hero)}/>}<View style={styles.section}><View><Text style={styles.sectionTitle}>Woven Flow</Text><Text style={styles.sub}>Small steps. Real momentum.</Text></View><Text style={styles.count}>{regular.length} goals</Text></View>
+      {regular.map(t => <Card key={t.id} task={t} open={() => setSelected(t)} complete={() => complete(t)}/>)}<View style={{height:110}}/></View></ScrollView> : <View style={styles.placeholder}><Sparkles size={32} color="#FF7A59"/><Text style={styles.placeholderTitle}>{tab === 'flow' ? 'Flow Analytics' : tab === 'voice' ? 'Voice Brain Dump' : 'Weave Pro'}</Text><Text style={styles.placeholderText}>Home is now the native Phase 3B migration. The remaining screens come next.</Text></View>}
+    {tab === 'home' && <Pressable style={styles.fab} onPress={() => setNewOpen(true)}><Plus size={28} color="#fff" strokeWidth={3}/></Pressable>}
+    <View style={styles.navWrap}><View style={styles.nav}>{[['home','Home',Sparkles],['flow','Flow',Zap],['voice','Voice',Layers3],['pro','Pro',Flame]].map(([id,label,Icon]: any) => <Pressable key={id} onPress={() => setTab(id)} style={styles.navItem}><Icon size={19} color={tab===id ? '#FF7A59':'#52525B'}/><Text style={[styles.navText,tab===id&&styles.navActive]}>{label}</Text></Pressable>)}</View></View>
+    <TaskModal task={selected} close={() => setSelected(null)} toggle={toggleStep} complete={complete} remove={id => {setTasks(ts => ts.filter(t => t.id !== id)); setSelected(null); notify('Task removed')}}/>
+    <Modal visible={newOpen} transparent animationType="slide" onRequestClose={() => setNewOpen(false)}><KeyboardAvoidingView style={styles.backdrop} behavior={Platform.OS==='ios'?'padding':undefined}><View style={styles.sheet}><View style={styles.sheetHead}><Text style={styles.sheetTitle}>New Goal</Text><Pressable onPress={() => setNewOpen(false)}><X size={22} color="#52525B"/></Pressable></View><Text style={styles.label}>What do you want to move forward?</Text><TextInput value={title} onChangeText={setTitle} placeholder="e.g. Finish landing page" placeholderTextColor="#A1A1AA" style={styles.input} autoFocus/><Text style={styles.label}>Category</Text><View style={styles.chips}>{(Object.keys(COLORS) as Category[]).map(c => <Pressable key={c} onPress={() => setCategory(c)} style={[styles.chip,{backgroundColor:category===c?COLORS[c].soft:'#F4F4F5',borderColor:category===c?COLORS[c].accent:'#E4E4E7'}]}><Text style={{fontSize:9,fontWeight:'900',color:category===c?COLORS[c].accent:'#71717A'}}>{COLORS[c].name}</Text></Pressable>)}</View><Pressable disabled={!title.trim()} onPress={create} style={[styles.create,!title.trim()&&styles.disabled]}><Plus size={18} color="#fff"/><Text style={styles.createText}>Add to Daily Flow</Text></Pressable></View></KeyboardAvoidingView></Modal>
+    {!!toast && <View style={styles.toast}><Sparkles size={15} color="#FF7A59"/><Text style={styles.toastText}>{toast}</Text></View>}
+  </SafeAreaView>;
 }
 
-/* ==========================================
-   SCREENS & COMPONENTS
-   ========================================== */
+function Focus({task,open,complete}:{task:Task;open:()=>void;complete:()=>void}) { const c=COLORS[task.category], done=task.microSteps.filter(s=>s.completed).length; return <View style={styles.focus}><View style={styles.focusHead}><View style={styles.row}><Flame size={15} color="#D97706" fill="#D97706"/><Text style={styles.focusLabel}>CURRENT FOCUS HERO</Text></View><Text style={styles.focusHint}>1 Goal at a time</Text></View><Pressable onPress={open} style={styles.hero}><View style={styles.glow}/><View style={styles.heroTop}><View style={[styles.badge,{backgroundColor:`${c.accent}22`,borderColor:`${c.accent}55`}]}><Text style={[styles.badgeText,{color:c.accent}]}>{c.name.toUpperCase()} • {task.minutes} MINS</Text></View><View style={styles.micro}><Layers3 size={13} color="#D4D4D8"/><Text style={styles.microText}>Micro-steps ({done}/{task.microSteps.length})</Text><ChevronRight size={13} color="#D4D4D8"/></View></View><Text style={styles.heroTitle}>{task.title}</Text><View style={styles.steps}>{task.microSteps.map(s=><View key={s.id} style={styles.step}><View style={[styles.circle,s.completed&&styles.circleDone]}>{s.completed&&<Check size={10} color="#fff" strokeWidth={3}/>}</View><Text style={[styles.stepText,s.completed&&styles.strike]}>{s.title}</Text></View>)}</View><View style={styles.heroFoot}><Text style={styles.guard}>ADHD Guardrail Protection</Text><Pressable onPress={e=>{e.stopPropagation();complete()}} style={[styles.complete,task.microSteps.every(s=>s.completed)&&styles.ready]}><Check size={15} color="#fff" strokeWidth={3}/><Text style={styles.completeText}>{task.completed?'Done':'Mark Complete'}</Text></Pressable></View></Pressable></View>; }
 
-function SplashScreen({ onFinish }: { onFinish: () => void }) {
-  useEffect(() => {
-    const timer = setTimeout(onFinish, 2000);
-    return () => clearTimeout(timer);
-  }, []);
+function Card({task,open,complete}:{task:Task;open:()=>void;complete:()=>void}) { const c=COLORS[task.category],done=task.microSteps.filter(s=>s.completed).length; return <Pressable onPress={open} style={[styles.card,{backgroundColor:c.soft,borderColor:`${c.accent}35`}]}><View style={[styles.accent,{backgroundColor:c.accent}]}/><View style={styles.cardBody}><View style={styles.rowBetween}><Text style={[styles.category,{color:c.accent,backgroundColor:`${c.accent}18`}]}> {c.name} </Text><View style={styles.time}><Clock3 size={12} color="#71717A"/><Text style={styles.timeText}>{task.minutes}m</Text></View></View><Text style={[styles.cardTitle,task.completed&&styles.strike]}>{task.title}</Text><View style={styles.rowBetween}><Text style={styles.stepSummary}>{done}/{task.microSteps.length} micro-steps complete</Text><Pressable onPress={e=>{e.stopPropagation();complete()}} style={[styles.smallCheck,task.completed&&styles.smallDone]}><Check size={15} color={task.completed?'#fff':'#71717A'} strokeWidth={3}/></Pressable></View></View></Pressable>; }
 
-  return (
-    <View style={styles.centerScreen}>
-      <View style={styles.logoBox}>
-        <Text style={styles.logoText}>W</Text>
-      </View>
-      <Text style={styles.title}>Weave</Text>
-      <Text style={styles.subtitle}>Frictionless ADHD Productivity</Text>
-    </View>
-  );
-}
+function TaskModal({task,close,toggle,complete,remove}:{task:Task|null;close:()=>void;toggle:(a:string,b:string)=>void;complete:(t:Task)=>void;remove:(id:string)=>void}) { if(!task)return null; const c=COLORS[task.category]; return <Modal visible transparent animationType="slide" onRequestClose={close}><View style={styles.backdrop}><View style={styles.detail}><View style={styles.sheetHead}><View><Text style={styles.eyebrow}>{c.name} • {task.minutes} MINUTES</Text><Text style={styles.detailTitle}>{task.title}</Text></View><Pressable onPress={close}><X size={22} color="#71717A"/></Pressable></View><Text style={styles.detailHint}>Break the goal down. Finish the small things. Then unlock completion.</Text>{task.microSteps.map(s=><Pressable key={s.id} onPress={()=>toggle(task.id,s.id)} style={styles.detailStep}><View style={[styles.detailCheck,s.completed&&styles.detailDone]}>{s.completed&&<Check size={12} color="#fff" strokeWidth={3}/>}</View><Text style={[styles.detailText,s.completed&&styles.strike]}>{s.title}</Text></Pressable>)}<View style={styles.actions}><Pressable onPress={()=>complete(task)} style={styles.detailComplete}><Check size={17} color="#fff"/><Text style={styles.detailCompleteText}>{task.completed?'Reopen Goal':'Mark Complete'}</Text></Pressable><Pressable onPress={()=>remove(task.id)} style={styles.delete}><Trash2 size={17} color="#EF4444"/></Pressable></View></View></View></Modal>; }
 
-function OnboardingFlowScreen({ onComplete }: { onComplete: () => void }) {
-  const [step, setStep] = useState(0);
-  const [focusArea, setFocusArea] = useState<string | null>(null);
-
-  return (
-    <View style={styles.onboardingContainer}>
-      {step === 0 ? (
-        <View style={styles.centerScreen}>
-          <View style={styles.logoBox}><Text style={styles.logoText}>W</Text></View>
-          <Text style={styles.title}>Welcome to Weave</Text>
-          <Text style={styles.subtitle}>The most frictionless ADHD task tracking app.</Text>
-          <TouchableOpacity style={styles.primaryButton} onPress={() => setStep(1)}>
-            <Text style={styles.buttonText}>Get Started</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <View style={{ flex: 1, padding: 20, justifyContent: 'space-between' }}>
-          <View>
-            <Text style={{ fontSize: 24, fontWeight: '900', color: '#18181B', marginBottom: 8 }}>What's your primary focus?</Text>
-            <Text style={{ fontSize: 13, color: '#71717A', marginBottom: 20 }}>Helps us calculate accurate micro-task goals.</Text>
-            {[
-              { id: 'work', title: 'Work & Professional Projects' },
-              { id: 'life', title: 'Household Chores & Life Admin' },
-              { id: 'creative', title: 'Creative Ideas & Side Projects' },
-            ].map((item) => (
-              <TouchableOpacity
-                key={item.id}
-                onPress={() => setFocusArea(item.id)}
-                style={[styles.optionCard, focusArea === item.id && { borderColor: '#FF7A59', backgroundColor: '#FFF7ED' }]}
-              >
-                <Text style={{ fontWeight: '700', color: '#18181B' }}>{item.title}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          <TouchableOpacity
-            disabled={!focusArea}
-            style={[styles.primaryButton, !focusArea && { backgroundColor: '#D4D4D8' }]}
-            onPress={onComplete}
-          >
-            <Text style={styles.buttonText}>Enter Weave</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-    </View>
-  );
-}
-
-function PaywallScreen({ onContinue }: { onContinue: () => void }) {
-  return (
-    <View style={styles.centerScreen}>
-      <Crown size={48} color="#F59E0B" />
-      <Text style={styles.title}>Weave Pro</Text>
-      <Text style={styles.subtitle}>Unlock unlimited voice brain dumps and AI deep focus.</Text>
-      <TouchableOpacity style={styles.primaryButton} onPress={onContinue}>
-        <Text style={styles.buttonText}>Continue to Weave</Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
-
-function HomeScreen({ onTriggerConfetti }: { onTriggerConfetti: () => void }) {
-  return (
-    <View style={styles.paddingContainer}>
-      <Text style={styles.headerTitle}>Today's Focus</Text>
-      <View style={styles.card}>
-        <Zap size={24} color="#FF7A59" />
-        <Text style={styles.cardTitle}>Your ADHD Micro-Steps</Text>
-        <Text style={styles.cardText}>Tap the floating plus button below to dump your thoughts and let AI weave them into tiny actions!</Text>
-        <TouchableOpacity style={styles.primaryButton} onPress={onTriggerConfetti}>
-          <Text style={styles.buttonText}>Celebrate Progress 🎉</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-}
-
-function DashboardScreen() {
-  return (
-    <View style={styles.paddingContainer}>
-      <Text style={styles.headerTitle}>Flow Analytics</Text>
-      <View style={styles.cardGrid}>
-        <View style={styles.card}>
-          <Clock size={20} color="#F59E0B" />
-          <Text style={styles.cardValue}>9 AM - 11 AM</Text>
-          <Text style={styles.cardLabel}>Peak Window</Text>
-        </View>
-        <View style={styles.card}>
-          <Award size={20} color="#10B981" />
-          <Text style={styles.cardValue}>12 Tasks</Text>
-          <Text style={styles.cardLabel}>Completed</Text>
-        </View>
-      </View>
-    </View>
-  );
-}
-
-function InteractiveVoiceDemoScreen() {
-  const [isRecording, setIsRecording] = useState(false);
-  const [tasks, setTasks] = useState<string[] | null>(null);
-
-  const startDump = () => {
-    setIsRecording(true);
-    setTasks(null);
-    setTimeout(() => {
-      setIsRecording(false);
-      setTasks(['Draft project outline email', 'Clear counter clutter', '5-minute stretch']);
-    }, 3000);
-  };
-
-  return (
-    <View style={styles.paddingContainer}>
-      <Text style={styles.headerTitle}>Voice Brain Dump</Text>
-      <View style={styles.card}>
-        {isRecording ? (
-          <View style={{ alignItems: 'center', gap: 12 }}>
-            <View style={styles.pulseBox} />
-            <Text style={{ fontWeight: '700' }}>Listening to your thoughts...</Text>
-          </View>
-        ) : tasks ? (
-          <View style={{ gap: 10 }}>
-            <Text style={{ fontWeight: '800' }}>✨ Weaved Micro-Steps:</Text>
-            {tasks.map((t, i) => (
-              <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <CheckCircle2 size={16} color="#10B981" />
-                <Text style={{ fontWeight: '600' }}>{t}</Text>
-              </View>
-            ))}
-            <TouchableOpacity onPress={() => setTasks(null)} style={{ marginTop: 10 }}>
-              <Text style={{ color: '#FF7A59', fontWeight: '800' }}>Try Another</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <TouchableOpacity style={styles.primaryButton} onPress={startDump}>
-            <Mic size={20} color="#FFF" />
-            <Text style={styles.buttonText}>Tap to Test Voice Dump</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-    </View>
-  );
-}
-
-function PaywallPlaceholder() {
-  return (
-    <View style={styles.paddingContainer}>
-      <Text style={styles.headerTitle}>Weave Pro</Text>
-      <View style={styles.card}>
-        <Crown size={28} color="#F59E0B" />
-        <Text style={styles.cardText}>Unlock unlimited voice brain dumps and AI deep focus themes.</Text>
-      </View>
-    </View>
-  );
-}
-
-function FloatingActionButton() {
-  return (
-    <View style={styles.fabContainer}>
-      <TouchableOpacity style={styles.fabButton}>
-        <Plus size={28} color="#FFF" strokeWidth={3} />
-      </TouchableOpacity>
-    </View>
-  );
-}
-
-function TabButton({ id, label, icon: Icon, activeTab, onPress }: any) {
-  const isActive = activeTab === id;
-  return (
-    <TouchableOpacity onPress={onPress} style={styles.tabTouch}>
-      <Icon size={20} color={isActive ? '#FF7A59' : '#52525B'} strokeWidth={2.5} />
-      {isActive && <Text style={styles.tabLabel}>{label}</Text>}
-    </TouchableOpacity>
-  );
-}
-
-function ConfettiOverlay({ onFinish }: { onFinish: () => void }) {
-  useEffect(() => {
-    const t = setTimeout(onFinish, 2000);
-    return () => clearTimeout(t);
-  }, []);
-  return <View style={styles.confettiLayer} pointerEvents="none" />;
-}
-
-/* ==========================================
-   STYLES
-   ========================================== */
-
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#FFFDF9' },
-  screenContainer: { flex: 1, backgroundColor: '#F8F9FA', position: 'relative' },
-  scrollContent: { paddingBottom: 140 },
-  centerScreen: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, gap: 16 },
-  onboardingContainer: { flex: 1, backgroundColor: '#FFFDF9' },
-  paddingContainer: { padding: 20 },
-  logoBox: { width: 64, height: 64, borderRadius: 18, backgroundColor: '#FF7A59', justifyContent: 'center', alignItems: 'center', shadowColor: '#FF7A59', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 6 },
-  logoText: { color: '#FFFFFF', fontSize: 32, fontWeight: '900' },
-  title: { fontSize: 28, fontWeight: '900', color: '#18181B', textAlign: 'center' },
-  subtitle: { fontSize: 14, color: '#71717A', fontWeight: '500', textAlign: 'center' },
-  headerTitle: { fontSize: 24, fontWeight: '900', color: '#18181B', marginBottom: 16 },
-  card: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 20, borderWidth: 1, borderColor: '#E2E8F0', gap: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
-  cardTitle: { fontSize: 18, fontWeight: '800', color: '#18181B' },
-  cardText: { fontSize: 14, color: '#64748B', lineHeight: 20 },
-  cardGrid: { flexDirection: 'row', gap: 12 },
-  cardValue: { fontSize: 16, fontWeight: '900', color: '#18181B', marginTop: 4 },
-  cardLabel: { fontSize: 12, fontWeight: '600', color: '#71717A' },
-  primaryButton: { backgroundColor: '#FF7A59', width: '100%', height: 50, borderRadius: 14, justifyContent: 'center', alignItems: 'center', flexDirection: 'row', gap: 8, shadowColor: '#FF7A59', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
-  buttonText: { color: '#FFFFFF', fontWeight: '800', fontSize: 15 },
-  optionCard: { padding: 16, borderRadius: 14, borderWidth: 1, borderColor: '#E4E4E7', backgroundColor: '#FFFFFF', marginBottom: 12 },
-  fabContainer: { position: 'absolute', bottom: 90, right: 24, zIndex: 99 },
-  fabButton: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#FF7A59', justifyContent: 'center', alignItems: 'center', shadowColor: '#FF7A59', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 10, elevation: 8 },
-  floatingNavWrapper: { position: 'absolute', bottom: 20, left: 0, right: 0, alignItems: 'center', zIndex: 98 },
-  floatingNavBar: { flexDirection: 'row', backgroundColor: '#F7F4EB', borderRadius: 40, padding: 6, alignItems: 'center', gap: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 10, elevation: 8, borderWidth: 1, borderColor: 'rgba(0,0,0,0.05)' },
-  tabTouch: { width: 78, height: 46, borderRadius: 23, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
-  tabLabel: { color: '#18181B', fontSize: 11, fontWeight: '800' },
-  pulseBox: { width: 50, height: 50, borderRadius: 25, backgroundColor: 'rgba(255,122,89,0.2)' },
-  confettiLayer: { ...StyleSheet.absoluteFillObject, zIndex: 999 },
-});
+const styles=StyleSheet.create({safe:{flex:1,backgroundColor:'#FFF9F5'},scroll:{paddingBottom:20},container:{width:'100%',maxWidth:520,alignSelf:'center',paddingHorizontal:16,paddingTop:10},row:{flexDirection:'row',alignItems:'center',gap:6},rowBetween:{flexDirection:'row',alignItems:'center',justifyContent:'space-between'},header:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',marginBottom:18},brandRow:{flexDirection:'row',alignItems:'center',gap:11},logo:{width:42,height:42,borderRadius:15,backgroundColor:'#FF7A59',alignItems:'center',justifyContent:'center',shadowColor:'#FF7A59',shadowOpacity:.2,shadowRadius:8,elevation:3},logoText:{color:'#fff',fontSize:20,fontWeight:'900'},brand:{fontSize:18,lineHeight:20,fontWeight:'900',color:'#18181B'},tagline:{fontSize:11,color:'#A1A1AA',marginTop:2},flow:{flexDirection:'row',alignItems:'center',gap:6,backgroundColor:'#ECFDF5',borderWidth:1,borderColor:'#BBF7D0',borderRadius:20,paddingHorizontal:9,paddingVertical:6},dot:{width:7,height:7,borderRadius:4,backgroundColor:'#10B981'},flowText:{color:'#047857',fontSize:10,fontWeight:'800'},momentum:{backgroundColor:'rgba(255,255,255,.82)',borderRadius:24,padding:15,borderWidth:1,borderColor:'#fff',shadowColor:'#000',shadowOpacity:.04,shadowRadius:12,elevation:2,marginBottom:22},momentumTitle:{fontSize:12,fontWeight:'800',color:'#27272A'},zap:{width:25,height:25,borderRadius:8,backgroundColor:'#FFF0EB',alignItems:'center',justifyContent:'center'},momentumValue:{fontSize:11,fontWeight:'900',color:'#FF7A59'},track:{height:10,borderRadius:8,backgroundColor:'#F1F1F2',overflow:'hidden',marginTop:10},fill:{height:'100%',borderRadius:8,backgroundColor:'#FF7A59'},focus:{marginBottom:25},focusHead:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',marginBottom:9,paddingHorizontal:3},focusLabel:{fontSize:11,fontWeight:'900',color:'#B45309',letterSpacing:.8},focusHint:{fontSize:10,color:'#A1A1AA',fontWeight:'600'},hero:{overflow:'hidden',backgroundColor:'#18181B',borderRadius:29,padding:20,shadowColor:'#18181B',shadowOpacity:.28,shadowRadius:18,elevation:8},glow:{position:'absolute',width:150,height:150,borderRadius:75,backgroundColor:'rgba(255,122,89,.16)',right:-45,top:-45},heroTop:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',gap:8},badge:{borderWidth:1,borderRadius:16,paddingHorizontal:9,paddingVertical:5},badgeText:{fontSize:9,fontWeight:'900',letterSpacing:.8},micro:{flexDirection:'row',alignItems:'center',gap:4,backgroundColor:'rgba(255,255,255,.08)',borderRadius:16,paddingHorizontal:8,paddingVertical:6},microText:{color:'#D4D4D8',fontSize:9,fontWeight:'700'},heroTitle:{color:'#fff',fontSize:21,fontWeight:'800',lineHeight:27,marginTop:17,marginBottom:15},steps:{gap:9,marginBottom:17},step:{flexDirection:'row',alignItems:'center',gap:9},circle:{width:16,height:16,borderRadius:8,borderWidth:1,borderColor:'#52525B',alignItems:'center',justifyContent:'center'},circleDone:{backgroundColor:'#10B981',borderColor:'#10B981'},stepText:{flex:1,color:'#D4D4D8',fontSize:11,fontWeight:'600'},strike:{color:'#71717A',textDecorationLine:'line-through'},heroFoot:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',borderTopWidth:1,borderTopColor:'#27272A',paddingTop:13},guard:{color:'#71717A',fontSize:9,fontWeight:'600'},complete:{flexDirection:'row',alignItems:'center',gap:6,paddingHorizontal:13,paddingVertical:9,borderRadius:18,backgroundColor:'#27272A',borderWidth:1,borderColor:'#3F3F46'},ready:{backgroundColor:'#FF7A59',borderColor:'#FF7A59'},completeText:{color:'#fff',fontSize:10,fontWeight:'900'},section:{flexDirection:'row',alignItems:'flex-end',justifyContent:'space-between',marginBottom:11,paddingHorizontal:3},sectionTitle:{color:'#18181B',fontSize:19,fontWeight:'900'},sub:{color:'#A1A1AA',fontSize:10,fontWeight:'600',marginTop:2},count:{color:'#A1A1AA',fontSize:10,fontWeight:'700'},card:{minHeight:118,borderWidth:1,borderRadius:22,marginBottom:10,flexDirection:'row',overflow:'hidden'},accent:{width:5},cardBody:{flex:1,padding:14},category:{fontSize:9,fontWeight:'900',paddingHorizontal:8,paddingVertical:4,borderRadius:10,overflow:'hidden'},time:{flexDirection:'row',alignItems:'center',gap:3},timeText:{fontSize:9,color:'#71717A',fontWeight:'700'},cardTitle:{fontSize:15,fontWeight:'800',color:'#27272A',marginTop:9,marginBottom:12},stepSummary:{fontSize:9,color:'#71717A',fontWeight:'600'},smallCheck:{width:29,height:29,borderRadius:15,borderWidth:1,borderColor:'#D4D4D8',alignItems:'center',justifyContent:'center'},smallDone:{backgroundColor:'#10B981',borderColor:'#10B981'},fab:{position:'absolute',right:20,bottom:93,width:58,height:58,borderRadius:29,backgroundColor:'#FF7A59',alignItems:'center',justifyContent:'center',shadowColor:'#FF7A59',shadowOpacity:.35,shadowRadius:10,elevation:9},navWrap:{position:'absolute',bottom:18,left:0,right:0,alignItems:'center'},nav:{flexDirection:'row',alignItems:'center',backgroundColor:'#F7F4EB',borderWidth:1,borderColor:'rgba(0,0,0,.05)',borderRadius:34,padding:5,elevation:8},navItem:{width:76,height:43,borderRadius:22,alignItems:'center',justifyContent:'center',gap:2},navText:{fontSize:9,color:'#52525B',fontWeight:'700'},navActive:{color:'#18181B',fontWeight:'900'},backdrop:{flex:1,justifyContent:'flex-end',backgroundColor:'rgba(0,0,0,.38)'},sheet:{backgroundColor:'#FFFDFB',borderTopLeftRadius:28,borderTopRightRadius:28,padding:20,paddingBottom:30},detail:{backgroundColor:'#FFFDFB',borderTopLeftRadius:28,borderTopRightRadius:28,padding:20,paddingBottom:34,maxHeight:'82%'},sheetHead:{flexDirection:'row',justifyContent:'space-between',alignItems:'flex-start',marginBottom:16},sheetTitle:{fontSize:22,fontWeight:'900',color:'#18181B'},label:{fontSize:10,color:'#71717A',fontWeight:'800',marginBottom:7,marginTop:5},input:{height:50,borderRadius:15,borderWidth:1,borderColor:'#E4E4E7',backgroundColor:'#fff',paddingHorizontal:14,fontSize:14,color:'#18181B',marginBottom:12},chips:{flexDirection:'row',flexWrap:'wrap',gap:7,marginBottom:18},chip:{borderWidth:1,borderRadius:14,paddingHorizontal:10,paddingVertical:7},create:{height:50,borderRadius:15,backgroundColor:'#FF7A59',flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7},disabled:{backgroundColor:'#D4D4D8'},createText:{color:'#fff',fontSize:13,fontWeight:'900'},eyebrow:{color:'#FF7A59',fontSize:9,fontWeight:'900',letterSpacing:1},detailTitle:{color:'#18181B',fontSize:21,fontWeight:'900',marginTop:4,maxWidth:300},detailHint:{color:'#71717A',fontSize:11,lineHeight:17,marginBottom:16},detailStep:{flexDirection:'row',alignItems:'center',gap:11,padding:11,borderRadius:14,backgroundColor:'#F8F8F7',marginBottom:8},detailCheck:{width:22,height:22,borderRadius:11,borderWidth:1.5,borderColor:'#D4D4D8',alignItems:'center',justifyContent:'center'},detailDone:{backgroundColor:'#10B981',borderColor:'#10B981'},detailText:{flex:1,color:'#3F3F46',fontSize:12,fontWeight:'600',lineHeight:17},actions:{flexDirection:'row',gap:9,marginTop:9},detailComplete:{flex:1,height:46,borderRadius:14,backgroundColor:'#FF7A59',flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7},detailCompleteText:{color:'#fff',fontSize:12,fontWeight:'900'},delete:{width:46,height:46,borderRadius:14,backgroundColor:'#FFF1F2',alignItems:'center',justifyContent:'center'},placeholder:{flex:1,alignItems:'center',justifyContent:'center',padding:35,gap:12},placeholderTitle:{fontSize:25,fontWeight:'900',color:'#18181B'},placeholderText:{textAlign:'center',color:'#71717A',fontSize:13,lineHeight:19},toast:{position:'absolute',left:18,right:18,bottom:78,minHeight:44,borderRadius:16,backgroundColor:'#18181B',flexDirection:'row',alignItems:'center',justifyContent:'center',gap:8,paddingHorizontal:14,zIndex:20},toastText:{color:'#fff',fontSize:11,fontWeight:'700'}});
 
 registerRootComponent(App);
