@@ -2,7 +2,7 @@
   "name": "weave",
   "private": true,
   "version": "0.1.0",
-  "main": "expo-router/entry",
+  "main": "expo/AppEntry",
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
