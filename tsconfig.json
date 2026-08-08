@@ -5,7 +5,9 @@
     "noEmit": true,
     "skipLibCheck": true,
     "paths": {
-      "@/*": ["./*"]
+      "@/*": [
+        "./*"
+      ]
     }
   },
   "include": [
@@ -13,9 +15,7 @@
     "app/**/*.ts",
     "app/**/*.tsx",
     "components/**/*.ts",
-    "components/**/*.tsx",
-    ".expo/types/**/*.ts",
-    "expo-env.d.ts"
+    "components/**/*.tsx"
   ],
   "exclude": [
     "src/**",
