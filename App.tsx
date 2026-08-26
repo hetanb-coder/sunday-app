@@ -1483,7 +1483,15 @@ function NewGoalDueDatePickerSheet({
   ];
   const today = new Date();
   const firstCalendarDate = addLocalDays(visibleMonth, -visibleMonth.getDay());
-  const calendarDates = Array.from({ length: 42 }, (_, index) =>
+  const daysInVisibleMonth = new Date(
+    visibleMonth.getFullYear(),
+    visibleMonth.getMonth() + 1,
+    0
+  ).getDate();
+  const visibleCalendarCellCount = Math.ceil(
+    (visibleMonth.getDay() + daysInVisibleMonth) / 7
+  ) * 7;
+  const calendarDates = Array.from({ length: visibleCalendarCellCount }, (_, index) =>
     addLocalDays(firstCalendarDate, index)
   );
   const canGoToPreviousMonth =
@@ -1529,7 +1537,7 @@ function NewGoalDueDatePickerSheet({
           layout={LinearTransition.duration(260)}
           style={[
             styles.duePickerSheet,
-            { paddingBottom: Math.max(22, insets.bottom + 14) },
+            { paddingBottom: Math.max(16, insets.bottom + 8) },
           ]}
         >
           <View style={styles.dragHandleArea}>
@@ -1551,8 +1559,10 @@ function NewGoalDueDatePickerSheet({
             </Pressable>
           </View>
           <ScrollView
+            style={styles.duePickerScroll}
             showsVerticalScrollIndicator={false}
             bounces={false}
+            scrollEnabled={viewportHeight < 700}
             contentContainerStyle={styles.duePickerContent}
           >
 
@@ -1632,6 +1642,7 @@ function NewGoalDueDatePickerSheet({
                   accessibilityRole="button"
                   accessibilityLabel="Previous month"
                   disabled={!canGoToPreviousMonth}
+                  hitSlop={3}
                   onPress={() => setVisibleMonth((month) =>
                     new Date(month.getFullYear(), month.getMonth() - 1, 1)
                   )}
@@ -1646,6 +1657,7 @@ function NewGoalDueDatePickerSheet({
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Next month"
+                  hitSlop={3}
                   onPress={() => setVisibleMonth((month) =>
                     new Date(month.getFullYear(), month.getMonth() + 1, 1)
                   )}
@@ -1674,6 +1686,7 @@ function NewGoalDueDatePickerSheet({
                     accessibilityLabel={date.toLocaleDateString()}
                     accessibilityState={{ selected, disabled }}
                     disabled={disabled}
+                    hitSlop={{ top: 2, bottom: 2 }}
                     onPress={() => updateDraft(date, hasTime)}
                     style={styles.dueCalendarDay}
                   >
@@ -1726,7 +1739,7 @@ function NewGoalDueDatePickerSheet({
           {hasDueDate && pickerMode !== 'time' && (
             <AnimatedReanimated.View
               entering={FadeInDown.duration(180)}
-              style={styles.dueSelectionSummary}
+              style={[styles.dueSelectionSummary, styles.newGoalDueSelectionSummary]}
             >
               <View style={styles.dueSelectionCopy}>
                 <Text style={styles.dueTimeLabel}>Selected</Text>
@@ -1738,7 +1751,7 @@ function NewGoalDueDatePickerSheet({
                 accessibilityRole="button"
                 accessibilityLabel={hasTime ? 'Change due time' : 'Add due time'}
                 onPress={() => setPickerMode('time')}
-                style={styles.dueAddTime}
+                style={[styles.dueAddTime, styles.newGoalDueAddTime]}
               >
                 <Clock3 size={13} color="#52525B" />
                 <Text style={styles.dueAddTimeText}>
@@ -11938,9 +11951,9 @@ const styles = StyleSheet.create({
   },
 
   duePickerSheet: {
-    maxHeight: '94%',
-    paddingHorizontal: 25,
-    paddingTop: 8,
+    maxHeight: '96%',
+    paddingHorizontal: 22,
+    paddingTop: 6,
     paddingBottom: 22,
     borderTopLeftRadius: 34,
     borderTopRightRadius: 34,
@@ -11953,14 +11966,18 @@ const styles = StyleSheet.create({
   },
 
   duePickerContent: {
-    paddingBottom: 2,
+    paddingBottom: 0,
+  },
+
+  duePickerScroll: {
+    flexShrink: 1,
   },
 
   duePickerHeader: {
-    minHeight: 47,
+    minHeight: 43,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 18,
+    marginBottom: 12,
   },
 
   duePickerKicker: {
@@ -12069,7 +12086,8 @@ const styles = StyleSheet.create({
   },
 
   dueSetCta: {
-    marginTop: 24,
+    minHeight: 54,
+    marginTop: 14,
   },
 
   togetherContinue: {
@@ -12282,8 +12300,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    rowGap: 12,
-    marginBottom: 22,
+    rowGap: 8,
+    marginBottom: 14,
   },
 
   legacyDueQuickChoices: {
@@ -12320,8 +12338,8 @@ const styles = StyleSheet.create({
 
   dueQuickChip: {
     width: '100%',
-    minHeight: 57,
-    paddingHorizontal: 16,
+    minHeight: 52,
+    paddingHorizontal: 14,
     borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
@@ -12355,9 +12373,9 @@ const styles = StyleSheet.create({
   },
 
   dueCalendarSurface: {
-    paddingHorizontal: 16,
-    paddingTop: 18,
-    paddingBottom: 14,
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 10,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: '#EEDCD5',
@@ -12365,11 +12383,11 @@ const styles = StyleSheet.create({
   },
 
   dueCalendarHeader: {
-    minHeight: 38,
+    minHeight: 34,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    marginBottom: 4,
   },
 
   dueCalendarMonth: {
@@ -12405,7 +12423,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     textAlign: 'center',
-    paddingVertical: 7,
+    paddingVertical: 4,
   },
 
   dueCalendarGrid: {
@@ -12415,7 +12433,7 @@ const styles = StyleSheet.create({
 
   dueCalendarDay: {
     width: '14.285714%',
-    minHeight: 38,
+    minHeight: 40,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -12507,6 +12525,12 @@ const styles = StyleSheet.create({
     gap: 10,
   },
 
+  newGoalDueSelectionSummary: {
+    minHeight: 50,
+    marginTop: 8,
+    borderRadius: 14,
+  },
+
   dueSelectionCopy: {
     flex: 1,
     minWidth: 0,
@@ -12520,6 +12544,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 5,
     backgroundColor: '#FFFFFF',
+  },
+
+  newGoalDueAddTime: {
+    minHeight: 36,
+    paddingHorizontal: 9,
   },
 
   dueAddTimeText: {
