@@ -2,56 +2,55 @@
 
 ## Building / Ready to Build
 
-### Home Visual V1
+### Task #002: New Goal Visual V1
 
-**Status:** READY TO BUILD
+**Status:** READY TO BUILD — NEXT ACTIVE BUILD
 
 Canonical visual reference:
-
-`design-references/locked/SUNDAY_HOME_ACTIVE_LOCKED.png`
-
-Goal: implement the locked Active Home visual direction.
-
-Key requirements:
-
-- Current Focus is dominant.
-- Next Step is clearly actionable.
-- Show a maximum of two Other Goals.
-- Other Goals are lightweight.
-- View All retains management and deletion according to permissions.
-- Completed Goals is understated.
-- Preserve intentional whitespace.
-- Fix the clipped Current Focus completion control if it remains present.
-
-Protected:
-
-- Bottom navigation
-- FAB
-- New Goal interaction
-- Keyboard
-- Goal Detail
-- Intelligent step generation
-- Smart Focus logic
-- Together and Supported permissions
-
-## Visual Locked — Next
-
-### New Goal Visual V1
-
-References:
 
 - `design-references/locked/SUNDAY_NEW_GOAL_FLOW_LOCKED.png`
 - `design-references/locked/SUNDAY_DUE_DATE_PICKER_LOCKED.png`
 
-**Status:** VISUAL LOCKED
+Goal: implement the main New Goal sheet using the locked visual reference.
 
-Implementation begins only after Home Visual V1 is implemented, QA-reviewed, and device-approved.
+Key requirements:
 
-## QA
+- Preserve existing production behavior.
+- Preserve existing motion and gestures.
+- Preserve keyboard behavior.
+- Preserve AI step generation.
+- Preserve relationship semantics.
+- Preserve persistence.
 
-### Home Visual V1 QA
+Separate follow-up visual/implementation tasks unless explicitly included later:
 
-**Status:** PENDING IMPLEMENTATION
+- Due Date.
+- Doing This.
+- Together person selection.
+- Support Me person selection.
+
+Do not mix the future Navigation / Voice Dump design and experience pass into New Goal implementation.
+
+## Device Approved / Visual Foundation Locked
+
+### Home Active V1
+
+**Status:** DEVICE APPROVED / VISUAL FOUNDATION LOCKED
+
+The final Home implementation has been merged into `mobile-migration`.
+
+The locked visual foundation includes the Oat Milk canvas, dynamic time-of-day greeting, approved top breathing room, category-responsive Current Focus hero, final muted Sunday category palette, borderless/open Next Step integrated into the hero, subtle category-derived divider, warm-white progress arc and tick, a maximum of two Other Goal previews, View All, clean white floating navigation, and coral FAB.
+
+Home is not permanently complete. A future dedicated Home Experience / Behavior pass may refine Smart Focus behavior, completion moments, celebrations, transitions, shared/support moments, Flow Cleared / empty experiences, contextual moments, and micro-interactions. Those passes must preserve the locked Home visual foundation unless a specific design decision explicitly supersedes it.
+
+## Future Dedicated Design / Experience Pass
+
+### Navigation / Voice Dump
+
+- Bottom navigation is not permanently visually locked.
+- Voice Dump / Motion placement and identity will be revisited.
+- Navigation shape, iconography, and wave may be evaluated in this dedicated pass.
+- Do not mix this work into New Goal implementation.
 
 ## Designing
 
@@ -59,6 +58,7 @@ None currently.
 
 ## Backlog
 
+- Home Experience / Behavior pass
 - Empty Home final visual polish
 - Flow Cleared final visual polish
 - Current Focus Next Step completion satisfaction

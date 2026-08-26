@@ -30,6 +30,42 @@ Canonical active Home visual reference:
 
 `design-references/locked/SUNDAY_HOME_ACTIVE_LOCKED.png`
 
+### Home Active V1
+
+**Status:** DEVICE APPROVED / VISUAL FOUNDATION LOCKED
+
+The final Home implementation has been merged into `mobile-migration`.
+
+The locked Home visual foundation includes:
+
+- Oat Milk canvas.
+- Dynamic Good morning / afternoon / evening greeting.
+- Approved top breathing room.
+- Category-responsive Current Focus hero.
+- Final muted Sunday category palette.
+- Borderless/open Next Step integrated directly into the hero.
+- Subtle category-derived divider.
+- Warm-white progress arc and tick.
+- Maximum two Other Goal previews.
+- View All.
+- Clean white floating navigation.
+- Coral FAB.
+
+Do not casually redesign the Home visual foundation in future tasks.
+
+This does not mean Home is permanently complete. A future dedicated Home Experience / Behavior pass may still refine:
+
+- Smart Focus behavior.
+- Completion moments.
+- Celebrations.
+- Transitions.
+- Shared/support moments.
+- Flow Cleared / empty experiences.
+- Contextual moments.
+- Micro-interactions.
+
+Those future passes must preserve the locked Home visual foundation unless a specific design decision explicitly supersedes it.
+
 ## New Goal interaction
 
 - Focus Rise direction.
@@ -51,6 +87,17 @@ Canonical references:
 - `design-references/locked/SUNDAY_DUE_DATE_PICKER_LOCKED.png`
 
 The standalone Due Date reference supersedes any earlier Due Date design visible inside the broader New Goal flow board.
+
+The main New Goal sheet is the next implementation target. Its implementation must use the locked visual reference while preserving existing production behavior, motion, gestures, keyboard behavior, AI step generation, relationship semantics, and persistence.
+
+Due Date, Doing This, Together person selection, and Support Me person selection remain separate follow-up visual/implementation tasks unless explicitly included later.
+
+## Navigation / Voice Dump
+
+- Bottom navigation is not permanently visually locked.
+- Voice Dump / Motion placement and identity will be revisited in a future dedicated design/experience pass.
+- Navigation shape, iconography, and wave may be evaluated in that dedicated pass.
+- Do not mix this work into New Goal implementation.
 
 ## Intelligent steps
 
