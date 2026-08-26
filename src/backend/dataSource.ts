@@ -7,7 +7,7 @@ import {
   togetherInteractionRepository,
 } from './repositories';
 
-export const weaveDataSource = backendConfig.mode === 'supabase'
+export const sundayDataSource = backendConfig.mode === 'supabase'
   ? {
       mode: 'supabase' as const,
       repositories: {

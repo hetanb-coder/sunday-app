@@ -356,12 +356,12 @@ export function VoiceReviewV2({
             {phase === 'commit'
               ? 'Ready for the next step'
               : commitBusy
-                ? 'Adding to Weave…'
+                ? 'Adding to Sunday…'
                 : keptCount === 0
                 ? 'Nothing to add'
                 : commitIssue
                   ? 'Retry'
-                  : `Add ${keptCount} to Weave`}
+                  : `Add ${keptCount} to Sunday`}
           </Text>
           <Check size={17} color={colors.onStrong} strokeWidth={2.7} />
         </Pressable>

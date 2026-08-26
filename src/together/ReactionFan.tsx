@@ -2,7 +2,7 @@ import * as Haptics from 'expo-haptics';
 import React, { useEffect, useMemo, useRef } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { motion } from '../theme';
-import { WEAVE_REACTIONS, type WeaveReactionDefinition, type WeaveReactionOrigin } from './WeaveReaction';
+import { SUNDAY_REACTIONS, type SundayReactionDefinition, type SundayReactionOrigin } from './SundayReaction';
 
 const POPOVER_WIDTH = 256;
 const POPOVER_HEIGHT = 58;
@@ -12,17 +12,17 @@ const ROW_INSET = 8;
 const POPOVER_RISE = 88;
 
 export function ReactionFan({ origin, closing, busyKey, reducedMotion, onDismiss, onClosed, onSelect }: {
-  origin: WeaveReactionOrigin;
+  origin: SundayReactionOrigin;
   closing: boolean;
   busyKey: string | null;
   reducedMotion: boolean;
   onDismiss: () => void;
   onClosed: () => void;
-  onSelect: (reaction: WeaveReactionDefinition, origin: WeaveReactionOrigin) => void;
+  onSelect: (reaction: SundayReactionDefinition, origin: SundayReactionOrigin) => void;
 }) {
   const { width } = useWindowDimensions();
   const bubbleProgress = useRef(new Animated.Value(0)).current;
-  const emojiProgress = useRef(WEAVE_REACTIONS.map(() => new Animated.Value(0))).current;
+  const emojiProgress = useRef(SUNDAY_REACTIONS.map(() => new Animated.Value(0))).current;
   const closingRef = useRef(false);
   const previousBusyRef = useRef<string | null | undefined>(undefined);
   const popoverLeft = Math.max(
@@ -32,7 +32,7 @@ export function ReactionFan({ origin, closing, busyKey, reducedMotion, onDismiss
   const popoverTop = origin.y - POPOVER_RISE;
   const pointerLeft = Math.max(18, Math.min(POPOVER_WIDTH - 24, origin.x - popoverLeft - 6));
   const selectedIndex = useMemo(
-    () => WEAVE_REACTIONS.findIndex((reaction) => `${reaction.type}:${reaction.key}` === busyKey),
+    () => SUNDAY_REACTIONS.findIndex((reaction) => `${reaction.type}:${reaction.key}` === busyKey),
     [busyKey]
   );
 
@@ -157,7 +157,7 @@ export function ReactionFan({ origin, closing, busyKey, reducedMotion, onDismiss
       >
         <View pointerEvents="none" style={[styles.pointer, { left: pointerLeft }]} />
         <View style={styles.row}>
-          {WEAVE_REACTIONS.map((reaction, index) => {
+          {SUNDAY_REACTIONS.map((reaction, index) => {
             const value = emojiProgress[index];
             const key = `${reaction.type}:${reaction.key}`;
             const center = {

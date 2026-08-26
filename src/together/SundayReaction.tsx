@@ -3,26 +3,26 @@ import type { LayoutChangeEvent } from 'react-native';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { TogetherInteractionType } from './models';
 
-export type WeaveReactionPersonality =
+export type SundayReactionPersonality =
   | 'clap'
   | 'heart'
   | 'strong'
   | 'fire'
   | 'celebrate';
 
-export type WeaveReactionOrigin = { x: number; y: number };
+export type SundayReactionOrigin = { x: number; y: number };
 
-export type WeaveReactionDefinition = {
+export type SundayReactionDefinition = {
   id: string;
   type: TogetherInteractionType;
   key: string;
   symbol: string;
   label: string;
-  personality: WeaveReactionPersonality;
+  personality: SundayReactionPersonality;
   surface: string;
 };
 
-export const WEAVE_REACTIONS: WeaveReactionDefinition[] = [
+export const SUNDAY_REACTIONS: SundayReactionDefinition[] = [
   { id: 'clap', type: 'reaction', key: 'clap', symbol: '👏', label: 'Nice progress', personality: 'clap', surface: '#F9F0E8' },
   { id: 'heart', type: 'reaction', key: 'heart', symbol: '🧡', label: 'Sending care', personality: 'heart', surface: '#F8ECEF' },
   { id: 'strong', type: 'reaction', key: 'strong', symbol: '💪', label: "You've got this", personality: 'strong', surface: '#F1EEF8' },
@@ -30,22 +30,22 @@ export const WEAVE_REACTIONS: WeaveReactionDefinition[] = [
   { id: 'celebrate', type: 'reaction', key: 'sparkle', symbol: '🙌', label: 'Celebrating you', personality: 'celebrate', surface: '#FFF6DF' },
 ];
 
-export const findWeaveReaction = (type: TogetherInteractionType, key: string) =>
-  WEAVE_REACTIONS.find((reaction) => reaction.type === type && reaction.key === key);
+export const findSundayReaction = (type: TogetherInteractionType, key: string) =>
+  SUNDAY_REACTIONS.find((reaction) => reaction.type === type && reaction.key === key);
 
-export type WeaveReactionVisualRenderer = (
-  reaction: WeaveReactionDefinition,
+export type SundayReactionVisualRenderer = (
+  reaction: SundayReactionDefinition,
   mode: 'tray' | 'flight' | 'arrival' | 'moment'
 ) => React.ReactNode;
 
-export function WeaveReactionVisual({
+export function SundayReactionVisual({
   reaction,
   mode,
   renderVisual,
 }: {
-  reaction: WeaveReactionDefinition;
+  reaction: SundayReactionDefinition;
   mode: 'tray' | 'flight' | 'arrival' | 'moment';
-  renderVisual?: WeaveReactionVisualRenderer;
+  renderVisual?: SundayReactionVisualRenderer;
 }) {
   return (
     <View
@@ -74,7 +74,7 @@ export function WeaveReactionVisual({
   );
 }
 
-export function WeaveReaction({
+export function SundayReaction({
   reaction,
   selected = false,
   receded = false,
@@ -87,7 +87,7 @@ export function WeaveReaction({
   onPress,
   renderVisual,
 }: {
-  reaction: WeaveReactionDefinition;
+  reaction: SundayReactionDefinition;
   selected?: boolean;
   receded?: boolean;
   unavailable?: boolean;
@@ -96,8 +96,8 @@ export function WeaveReaction({
   revealDelay?: number;
   onLayout?: (event: LayoutChangeEvent) => void;
   onPressIn?: () => void;
-  onPress?: (origin?: WeaveReactionOrigin) => void;
-  renderVisual?: WeaveReactionVisualRenderer;
+  onPress?: (origin?: SundayReactionOrigin) => void;
+  renderVisual?: SundayReactionVisualRenderer;
 }) {
   const reveal = useRef(new Animated.Value(revealDelay > 0 ? 0 : 1)).current;
   const touchTargetRef = useRef<View | null>(null);
@@ -144,7 +144,7 @@ export function WeaveReaction({
         pressed && styles.buttonPressed,
       ]}
     >
-      <WeaveReactionVisual reaction={reaction} mode="tray" renderVisual={renderVisual} />
+      <SundayReactionVisual reaction={reaction} mode="tray" renderVisual={renderVisual} />
     </Pressable>
     </Animated.View>
   );

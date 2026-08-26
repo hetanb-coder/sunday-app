@@ -77,7 +77,7 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
           <Text style={styles.logoText}>W</Text>
         </View>
 
-        <Text style={styles.appName}>Weave</Text>
+        <Text style={styles.appName}>Sunday</Text>
 
         <Animated.Text
           style={[

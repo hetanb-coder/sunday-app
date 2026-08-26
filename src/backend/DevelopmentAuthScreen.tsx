@@ -38,7 +38,7 @@ export function DevelopmentAuthScreen() {
       setMessage(
         backendError.code === 'invalid_credentials'
           ? 'That email or password did not match.'
-          : 'We could not reach your Weave account. Try again.'
+          : 'We could not reach your Sunday account. Try again.'
       );
     } finally {
       setSubmitting(false);
@@ -52,7 +52,7 @@ export function DevelopmentAuthScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.card}>
-          <Text style={styles.kicker}>WEAVE BACKEND PREVIEW</Text>
+          <Text style={styles.kicker}>SUNDAY BACKEND PREVIEW</Text>
           <Text style={styles.title}>{mode === 'sign_in' ? 'Welcome back' : 'Create a dev account'}</Text>
           <Text style={styles.message}>{message}</Text>
           {mode === 'sign_up' && (

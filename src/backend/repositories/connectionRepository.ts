@@ -101,7 +101,7 @@ export const connectionRepository = {
       throw new BackendError('conflict', "You can't invite yourself.");
     }
     if (result.status === 'account_not_found') {
-      throw new BackendError('invite_invalid', "We couldn't find an existing Weave account for that email.");
+      throw new BackendError('invite_invalid', "We couldn't find an existing Sunday account for that email.");
     }
     const invite = result.invite;
     if (result.status !== 'created' || !invite || typeof invite !== 'object' || Array.isArray(invite)) {

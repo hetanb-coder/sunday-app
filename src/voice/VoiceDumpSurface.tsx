@@ -375,7 +375,7 @@ export function VoiceDumpSurface({ originRect, onDocking, onClosed }: { originRe
                 }}
                 style={({ pressed }) => [styles.addButton, keptCount === 0 && styles.disabled, pressed && styles.pressed]}
               >
-                <Text style={styles.addButtonText}>Add {keptCount} to Weave</Text>
+                <Text style={styles.addButtonText}>Add {keptCount} to Sunday</Text>
                 <Check size={17} color="#FFFFFF" strokeWidth={2.8} />
               </Pressable>
               {__DEV__ && <Text style={styles.prototypeNote}>PROTOTYPE · NOTHING WILL BE SAVED</Text>}

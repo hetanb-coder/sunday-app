@@ -7,7 +7,7 @@ const migration = readFileSync(
   'utf8'
 );
 const detail = readFileSync(resolve('src/together/SharedGoalDetail.tsx'), 'utf8');
-const reactions = readFileSync(resolve('src/together/WeaveReaction.tsx'), 'utf8');
+const reactions = readFileSync(resolve('src/together/SundayReaction.tsx'), 'utf8');
 const repository = readFileSync(
   resolve('src/backend/repositories/togetherInteractionRepository.ts'),
   'utf8'
@@ -15,7 +15,7 @@ const repository = readFileSync(
 const permissions = readFileSync(resolve('src/together/goalPermissions.ts'), 'utf8');
 const app = readFileSync(resolve('App.tsx'), 'utf8');
 const goalRepository = readFileSync(resolve('src/backend/repositories/goalRepository.ts'), 'utf8');
-const reactionMoment = readFileSync(resolve('src/together/WeaveReactionMoment.tsx'), 'utf8');
+const reactionMoment = readFileSync(resolve('src/together/SundayReactionMoment.tsx'), 'utf8');
 const reactionAssets = readFileSync(resolve('src/together/reactionAssets.ts'), 'utf8');
 const reactionFan = readFileSync(resolve('src/together/ReactionFan.tsx'), 'utf8');
 
@@ -102,11 +102,11 @@ for (const [key, symbol] of [['clap', '👏'], ['heart', '🧡'], ['strong', '�
 }
 
 for (const invariant of [
-  'WeaveReactionVisualRenderer',
+  'SundayReactionVisualRenderer',
   'renderVisual?.(reaction, mode)',
-  'WEAVE_REACTIONS',
+  'SUNDAY_REACTIONS',
 ]) {
-  assert.ok(reactions.includes(invariant), `Missing reusable Weave reaction invariant: ${invariant}`);
+  assert.ok(reactions.includes(invariant), `Missing reusable Sunday reaction invariant: ${invariant}`);
 }
 
 for (const invariant of [
@@ -133,7 +133,7 @@ assert.ok(
 );
 assert.ok(
   detail.includes('origin={socialMoment.origin}') &&
-    reactionMoment.includes('origin?: WeaveReactionOrigin') &&
+    reactionMoment.includes('origin?: SundayReactionOrigin') &&
     reactionMoment.includes('origin.x - width / 2'),
   'The confirmed sender emoji must launch from the measured picker selection'
 );

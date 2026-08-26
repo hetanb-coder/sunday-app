@@ -399,7 +399,7 @@ export function InviteSomeoneSheet({
                     <View style={[styles.threadPerson, styles.threadPersonLavender]} />
                   </View>
                   <View style={styles.previewCopy}>
-                    <Text style={styles.previewTitle}>Join me on Weave</Text>
+                    <Text style={styles.previewTitle}>Join me on Sunday</Text>
                     <Text style={styles.previewText}>
                       A place for us to move things forward together.
                     </Text>

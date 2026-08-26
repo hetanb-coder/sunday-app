@@ -2,15 +2,15 @@ import * as Haptics from 'expo-haptics';
 import LottieView from 'lottie-react-native';
 import React, { useCallback, useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, View, useWindowDimensions } from 'react-native';
-import type { WeaveReactionDefinition, WeaveReactionOrigin } from './WeaveReaction';
+import type { SundayReactionDefinition, SundayReactionOrigin } from './SundayReaction';
 import { getReactionAsset } from './reactionAssets';
 
-export function WeaveReactionMoment({ reaction, mode, personName, reducedMotion, origin, onDone }: {
-  reaction: WeaveReactionDefinition;
+export function SundayReactionMoment({ reaction, mode, personName, reducedMotion, origin, onDone }: {
+  reaction: SundayReactionDefinition;
   mode: 'send' | 'receive';
   personName: string;
   reducedMotion: boolean;
-  origin?: WeaveReactionOrigin;
+  origin?: SundayReactionOrigin;
   onDone: () => void;
 }) {
   const { width, height } = useWindowDimensions();

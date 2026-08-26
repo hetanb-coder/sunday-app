@@ -125,7 +125,7 @@ const mapInvite = (invite: BackendInvite, currentUserId: string): ConnectionInvi
     inviteCode: invite.inviteCode,
     inviterUserId: invite.inviterUserId,
     inviteeDisplayName: direction === 'incoming'
-      ? invite.inviterDisplayName ?? 'Weave member'
+      ? invite.inviterDisplayName ?? 'Sunday member'
       : inviteDisplayName(invite),
     inviteeEmail: invite.inviteeEmail ?? '',
     relationshipType: invite.relationshipType,

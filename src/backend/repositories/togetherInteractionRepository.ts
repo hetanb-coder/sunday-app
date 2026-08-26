@@ -60,7 +60,7 @@ export const togetherInteractionRepository = {
     }
     const mappedInteraction = mapInteraction(interaction as unknown as InteractionRow);
     if (typeof __DEV__ !== 'undefined' && __DEV__) {
-      console.info('[Weave Together support persisted]', {
+      console.info('[Sunday Together support persisted]', {
         id: mappedInteraction.id,
         goalId: mappedInteraction.goalId,
         senderUserId: mappedInteraction.senderUserId,

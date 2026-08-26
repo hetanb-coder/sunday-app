@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Weave",
+    "name": "Sunday",
     "slug": "weave",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -16,7 +16,7 @@
       [
         "expo-audio",
         {
-          "microphonePermission": "Weave uses your microphone so you can talk through what's on your mind.",
+          "microphonePermission": "Sunday uses your microphone so you can talk through what's on your mind.",
           "recordAudioAndroid": true,
           "enableBackgroundRecording": false
         }

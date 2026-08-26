@@ -45,7 +45,7 @@ const friendlyAuthError = (error: unknown, mode: EmailMode) => {
   const diagnostics = getBackendErrorDiagnostics(error);
   const message = diagnostics.message.toLowerCase();
   if (message.includes('already') || message.includes('registered') || message.includes('exists')) {
-    return 'Looks like you already have a Weave account.';
+    return 'Looks like you already have a Sunday account.';
   }
   if (message.includes('invalid login') || message.includes('credentials')) {
     return "That email or password doesn't look right.";
@@ -143,7 +143,7 @@ export function ProductionAuthScreen() {
       if (emailMode === 'sign_in') {
         await auth.signIn(email, password);
       } else {
-        const placeholderName = email.trim().split('@')[0] || 'Weave member';
+        const placeholderName = email.trim().split('@')[0] || 'Sunday member';
         const result = await auth.signUp(email, password, placeholderName);
         if (result === 'confirmation_required') {
           setMessage('Check your email to confirm your account, then come back to sign in.');
@@ -153,7 +153,7 @@ export function ProductionAuthScreen() {
         }
       }
     } catch (error) {
-      if (__DEV__) console.error('[Weave production auth]', toBackendError(error));
+      if (__DEV__) console.error('[Sunday production auth]', toBackendError(error));
       setMessage(friendlyAuthError(error, emailMode));
     } finally {
       setSubmitting(false);
@@ -166,7 +166,7 @@ export function ProductionAuthScreen() {
         <Animated.View style={[styles.welcome, stageStyle]}>
           <View style={styles.brandRow}>
             <View style={styles.brandMark}><Text style={styles.brandMarkText}>W</Text></View>
-            <Text style={styles.brand}>WEAVE</Text>
+            <Text style={styles.brand}>SUNDAY</Text>
           </View>
           <View style={styles.threadArt} accessible={false}>
             <Animated.View style={[styles.threadLine, { transform: [{ rotateZ: '-10deg' }, { scaleX: threadReveal }] }]} />
@@ -186,7 +186,7 @@ export function ProductionAuthScreen() {
           <View style={styles.welcomeActions}>
             <PrimaryButton label="Get started" onPress={() => transitionSurface('choices')} />
             <Pressable accessibilityRole="button" onPress={() => openEmail('sign_in')} style={styles.textAction}>
-              <Text style={styles.textActionText}>Already using Weave? <Text style={styles.textActionStrong}>Sign in</Text></Text>
+              <Text style={styles.textActionText}>Already using Sunday? <Text style={styles.textActionStrong}>Sign in</Text></Text>
             </Pressable>
           </View>
         </Animated.View>
@@ -291,7 +291,7 @@ export function ProductionAuthScreen() {
             style={styles.textAction}
           >
             <Text style={styles.textActionText}>
-              {emailMode === 'sign_up' ? 'Already have an account? ' : 'New to Weave? '}
+              {emailMode === 'sign_up' ? 'Already have an account? ' : 'New to Sunday? '}
               <Text style={styles.textActionStrong}>{emailMode === 'sign_up' ? 'Sign in' : 'Create one'}</Text>
             </Text>
           </Pressable>
@@ -395,7 +395,7 @@ export function ProductionOnboardingFlow({
       recordOnboardingEvent('onboarding_completed', { intent: resolvedIntent });
       moveToStep('complete');
     } catch (error) {
-      if (__DEV__) console.error('[Weave complete onboarding]', toBackendError(error));
+      if (__DEV__) console.error('[Sunday complete onboarding]', toBackendError(error));
       setMessage("We couldn't finish setting up your space. Try again.");
       setSubmitting(false);
     }
@@ -410,7 +410,7 @@ export function ProductionOnboardingFlow({
       recordOnboardingEvent('profile_completed');
       moveToStep('intent');
     } catch (error) {
-      if (__DEV__) console.error('[Weave profile onboarding]', toBackendError(error));
+      if (__DEV__) console.error('[Sunday profile onboarding]', toBackendError(error));
       setMessage("We couldn't save your name right now. Try again.");
     } finally {
       setSubmitting(false);
@@ -432,7 +432,7 @@ export function ProductionOnboardingFlow({
         setSubmitting(false);
       }
     } catch (error) {
-      if (__DEV__) console.error('[Weave intent onboarding]', toBackendError(error));
+      if (__DEV__) console.error('[Sunday intent onboarding]', toBackendError(error));
       setMessage("We couldn't save that choice. Try again.");
       setSubmitting(false);
     }
@@ -458,7 +458,7 @@ export function ProductionOnboardingFlow({
       recordOnboardingEvent('invite_created', { intent });
       await finish(intent, true);
     } catch (error) {
-      if (__DEV__) console.error('[Weave onboarding invite]', toBackendError(error));
+      if (__DEV__) console.error('[Sunday onboarding invite]', toBackendError(error));
       setMessage("We couldn't send that invite. You can try again or do it later.");
       setSubmitting(false);
     }
@@ -538,7 +538,7 @@ export function ProductionOnboardingFlow({
           <View style={styles.pageHeading}>
             <Text style={styles.eyebrow}>MAKE IT YOURS</Text>
             <Text accessibilityRole="header" style={styles.pageTitle}>How do you want to begin?</Text>
-            <Text style={styles.pageText}>This is just a starting point. You can always change how you use Weave.</Text>
+            <Text style={styles.pageText}>This is just a starting point. You can always change how you use Sunday.</Text>
           </View>
           <View style={styles.intentList}>
             {intentOptions.map((option) => (

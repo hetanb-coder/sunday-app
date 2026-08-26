@@ -115,7 +115,7 @@ import {
 import type {
   OnboardingState,
 } from './src/backend/onboardingRepository';
-import { weaveDataSource } from './src/backend/dataSource';
+import { sundayDataSource } from './src/backend/dataSource';
 import { backendConfig } from './src/backend/config';
 import { BackendError, toBackendError } from './src/backend/errors';
 import {
@@ -570,14 +570,14 @@ const INITIAL: Task[] = [
     ],
   },
 ];
-const WEAVE_SPRING = {
+const SUNDAY_SPRING = {
   stiffness: 340,
   damping: 31,
   mass: 0.78,
   useNativeDriver: true,
 };
 
-const WEAVE_SPRING_SNAPPY = {
+const SUNDAY_SPRING_SNAPPY = {
   stiffness: 420,
   damping: 30,
   mass: 0.65,
@@ -623,7 +623,7 @@ function BackendApp() {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.backendLoading}>
-          <Text style={styles.backendLoadingText}>Opening Weave…</Text>
+          <Text style={styles.backendLoadingText}>Opening Sunday…</Text>
         </View>
       </SafeAreaView>
     );
@@ -639,10 +639,10 @@ function BackendApp() {
     );
   }
   if (auth.status === 'signed_out') return <ProductionAuthScreen />;
-  const remoteMode = weaveDataSource.mode === 'supabase' && auth.status === 'signed_in';
+  const remoteMode = sundayDataSource.mode === 'supabase' && auth.status === 'signed_in';
   const currentUserId = remoteMode ? auth.user.id : demoCurrentMember.id;
   const appContent = remoteMode ? (
-    <AuthenticatedWeaveApp currentUserId={currentUserId} />
+    <AuthenticatedSundayApp currentUserId={currentUserId} />
   ) : (
     <AppContent
       currentUserId={currentUserId}
@@ -653,7 +653,7 @@ function BackendApp() {
       remoteMode={false}
     />
   );
-  if (!__DEV__ || weaveDataSource.mode !== 'supabase' || auth.status !== 'signed_in') {
+  if (!__DEV__ || sundayDataSource.mode !== 'supabase' || auth.status !== 'signed_in') {
     return appContent;
   }
   return (
@@ -664,7 +664,7 @@ function BackendApp() {
   );
 }
 
-function AuthenticatedWeaveApp({ currentUserId }: { currentUserId: string }) {
+function AuthenticatedSundayApp({ currentUserId }: { currentUserId: string }) {
   const [onboarding, setOnboarding] = useState<OnboardingState | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [attempt, setAttempt] = useState(0);
@@ -678,7 +678,7 @@ function AuthenticatedWeaveApp({ currentUserId }: { currentUserId: string }) {
     }).catch((error) => {
       if (!active) return;
       setLoadError(true);
-      if (__DEV__) console.error('[Weave onboarding bootstrap]', toBackendError(error));
+      if (__DEV__) console.error('[Sunday onboarding bootstrap]', toBackendError(error));
     });
     return () => { active = false; };
   }, [attempt, currentUserId]);
@@ -737,7 +737,7 @@ function RemoteWorkspaceApp({ currentUserId }: { currentUserId: string }) {
     }).catch((error) => {
       if (!active) return;
       setLoadError(true);
-      if (__DEV__) console.error('[Weave workspace hydration]', toBackendError(error));
+      if (__DEV__) console.error('[Sunday workspace hydration]', toBackendError(error));
     });
     return () => { active = false; };
   }, [attempt, currentUserId]);
@@ -2189,7 +2189,7 @@ const [
     const refresh = workspaceDomain.loadTasks()
       .then((nextTasks) => setTasks(nextTasks))
       .catch((error) => {
-        if (__DEV__) console.error('[Weave goal refresh]', toBackendError(error));
+        if (__DEV__) console.error('[Sunday goal refresh]', toBackendError(error));
         setToast('We could not refresh your goals just yet');
       })
       .finally(() => {
@@ -2225,13 +2225,13 @@ const [
           : nextConnections[0]?.id ?? null
       );
     } catch (error) {
-      if (__DEV__) console.error('[Weave Together refresh]', toBackendError(error));
+      if (__DEV__) console.error('[Sunday Together refresh]', toBackendError(error));
       setToast('We could not refresh Together just yet');
     }
   }, [remoteMode]);
 
   const recoverRemoteTasks = useCallback((message: string, error: unknown) => {
-    if (__DEV__) console.error('[Weave optimistic goal rollback]', toBackendError(error));
+    if (__DEV__) console.error('[Sunday optimistic goal rollback]', toBackendError(error));
     setToast(message);
     void refreshRemoteTasks();
   }, [refreshRemoteTasks]);
@@ -2395,7 +2395,7 @@ const [
       ));
       return true;
     } catch (error) {
-      if (__DEV__) console.error('[Weave create microtask]', toBackendError(error));
+      if (__DEV__) console.error('[Sunday create microtask]', toBackendError(error));
       notify('That step could not be added');
       return false;
     }
@@ -2478,7 +2478,7 @@ const [
         : item));
       notify('Goal completed — keep the momentum');
     } catch (error) {
-      if (__DEV__) console.error('[Weave complete goal]', toBackendError(error));
+      if (__DEV__) console.error('[Sunday complete goal]', toBackendError(error));
       notify('That goal could not be updated');
       void refreshRemoteTasks();
     } finally {
@@ -2666,7 +2666,7 @@ const [
       await workspaceDomain.restoreGoal(remoteGoalId(taskToRestore));
       return true;
     } catch (error) {
-      if (__DEV__) console.error('[Weave restore goal]', toBackendError(error));
+      if (__DEV__) console.error('[Sunday restore goal]', toBackendError(error));
       notify('That goal could not be restored');
       return false;
     }
@@ -2712,7 +2712,7 @@ const [
           void workspaceDomain.deletePermanently(remoteGoalId(taskToDelete))
             .then(() => resolve(true))
             .catch((error) => {
-              if (__DEV__) console.error('[Weave permanent delete]', toBackendError(error));
+              if (__DEV__) console.error('[Sunday permanent delete]', toBackendError(error));
               notify('That goal could not be permanently deleted');
               resolve(false);
             });
@@ -2830,7 +2830,7 @@ const [
             return next;
           });
         } catch (error) {
-          if (__DEV__) console.error('[Weave create goal]', toBackendError(error));
+          if (__DEV__) console.error('[Sunday create goal]', toBackendError(error));
           setTasks((current) => current.filter((candidate) => candidate.id !== task.id));
           setGeneratingStepGoalIds((current) => {
             const next = new Set(current);
@@ -2870,7 +2870,7 @@ const [
         } catch (error) {
           if (__DEV__) {
             const generationError = error instanceof GoalStepGenerationError ? error : null;
-            console.info('[Weave goal step generation]', {
+            console.info('[Sunday goal step generation]', {
               stage: generationError?.stage ?? 'microtask-persistence',
               status: generationError?.status,
               code: generationError?.safeCode,
@@ -3941,7 +3941,7 @@ const [
                   error instanceof BackendError &&
                   (error.code === 'conflict' || error.code === 'invite_invalid')
                 )) {
-                  console.error('[Weave create invite]', toBackendError(error));
+                  console.error('[Sunday create invite]', toBackendError(error));
                 }
                 throw error;
               }
@@ -3973,7 +3973,7 @@ const [
             );
             if (remoteMode) {
               void workspaceDomain.cancelInvite(inviteId).catch((error) => {
-                if (__DEV__) console.error('[Weave cancel invite]', toBackendError(error));
+                if (__DEV__) console.error('[Sunday cancel invite]', toBackendError(error));
                 setToast('That invite could not be cancelled');
                 void refreshRemoteTogether();
               });
@@ -3990,7 +3990,7 @@ const [
                 await refreshRemoteTogether();
                 setToast('Connection added');
               }).catch((error) => {
-                if (__DEV__) console.error('[Weave accept invite]', toBackendError(error));
+                if (__DEV__) console.error('[Sunday accept invite]', toBackendError(error));
                 setToast('That invite could not be accepted');
                 void refreshRemoteTogether();
               });
@@ -4027,7 +4027,7 @@ const [
             void workspaceDomain.declineInvite(inviteId).then(() => {
               setConnectionInvites((current) => current.filter((invite) => invite.id !== inviteId));
             }).catch((error) => {
-              if (__DEV__) console.error('[Weave decline invite]', toBackendError(error));
+              if (__DEV__) console.error('[Sunday decline invite]', toBackendError(error));
               setToast("Couldn't update that invite just yet");
             });
           }}
@@ -4050,7 +4050,7 @@ const [
                       await Promise.all([refreshRemoteTogether(), refreshRemoteTasks()]);
                       setToast('Connection removed');
                     }).catch((error) => {
-                      if (__DEV__) console.error('[Weave remove connection]', toBackendError(error));
+                      if (__DEV__) console.error('[Sunday remove connection]', toBackendError(error));
                       setToast("Couldn't remove that connection just yet");
                     });
                   },
@@ -4295,7 +4295,7 @@ const [
                 ? { ...interaction, seenAt: interaction.seenAt ?? new Date().toISOString() }
                 : interaction));
             void workspaceDomain.markTogetherInteractionsSeen(goalId).catch((error) => {
-              if (__DEV__) console.error('[Weave mark support seen]', toBackendError(error));
+              if (__DEV__) console.error('[Sunday mark support seen]', toBackendError(error));
               void refreshRemoteTogether();
             });
           }}
@@ -6081,7 +6081,7 @@ function Placeholder({
       Layers3,
     ],
     pro: [
-      'Weave Pro',
+      'Sunday Pro',
       'A calmer, smarter way to go deeper.',
       Flame,
     ],
@@ -6816,7 +6816,7 @@ function TaskModal({
                       ).then(() => {
                         void Haptics.selectionAsync();
                       }).catch((error) => {
-                        if (__DEV__) console.error('[Weave goal share]', toBackendError(error));
+                        if (__DEV__) console.error('[Sunday goal share]', toBackendError(error));
                       }).finally(() => setShareBusyUserId(null));
                     }}
                     style={({ pressed }) => [

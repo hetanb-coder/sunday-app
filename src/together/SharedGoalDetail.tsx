@@ -32,15 +32,15 @@ import type {
 } from './models';
 import { connectionToMember } from './connectionState';
 import type { GoalViewPermissions } from './goalPermissions';
-import { WeaveReactionMoment } from './WeaveReactionMoment';
+import { SundayReactionMoment } from './SundayReactionMoment';
 import { ReactionFan } from './ReactionFan';
 import {
-  findWeaveReaction,
-  WeaveReactionVisual,
-  WEAVE_REACTIONS,
-  type WeaveReactionDefinition,
-  type WeaveReactionOrigin,
-} from './WeaveReaction';
+  findSundayReaction,
+  SundayReactionVisual,
+  SUNDAY_REACTIONS,
+  type SundayReactionDefinition,
+  type SundayReactionOrigin,
+} from './SundayReaction';
 
 const formatDue = (dueAt?: string, hasTime = false) => {
   if (!dueAt) return null;
@@ -143,8 +143,8 @@ function MemberMark({ member }: { member: TogetherMember }) {
 }
 
 const interactionPresentation = (interaction: TogetherInteraction) => {
-  const option = findWeaveReaction(interaction.type, interaction.key);
-  return option ?? WEAVE_REACTIONS[2];
+  const option = findSundayReaction(interaction.type, interaction.key);
+  return option ?? SUNDAY_REACTIONS[2];
 };
 
 const interactionArrivalCopy = (interaction: TogetherInteraction, name: string) =>
@@ -205,13 +205,13 @@ export function SharedGoalDetail({
   const playedArrivalRef = useRef<string | null>(null);
   const mountedRef = useRef(true);
   const sendLockRef = useRef(false);
-  const [fanOrigin, setFanOrigin] = useState<WeaveReactionOrigin | null>(null);
+  const [fanOrigin, setFanOrigin] = useState<SundayReactionOrigin | null>(null);
   const [fanClosing, setFanClosing] = useState(false);
   const [supportPending, setSupportPending] = useState<string | null>(null);
   const [socialMoment, setSocialMoment] = useState<{
-    reaction: WeaveReactionDefinition;
+    reaction: SundayReactionDefinition;
     mode: 'send' | 'receive';
-    origin?: WeaveReactionOrigin;
+    origin?: SundayReactionOrigin;
   } | null>(null);
   const [arrivalInteraction] = useState(() =>
     interactions.find(
@@ -433,8 +433,8 @@ export function SharedGoalDetail({
     .slice(0, arrivalInteraction ? 2 : 3);
 
   const animateConfirmedSupport = (
-    option: WeaveReactionDefinition,
-    origin?: WeaveReactionOrigin
+    option: SundayReactionDefinition,
+    origin?: SundayReactionOrigin
   ) => {
     setFanOrigin(null);
     setFanClosing(false);
@@ -504,12 +504,12 @@ export function SharedGoalDetail({
   const sendSupport = async (
     type: TogetherInteractionType,
     key: string,
-    origin?: WeaveReactionOrigin
+    origin?: SundayReactionOrigin
   ) => {
     if (!onSendSupport || sendLockRef.current) return;
     sendLockRef.current = true;
     const pendingKey = `${type}:${key}`;
-    const option = findWeaveReaction(type, key);
+    const option = findSundayReaction(type, key);
     if (!option) {
       sendLockRef.current = false;
       return;
@@ -732,7 +732,7 @@ export function SharedGoalDetail({
                         },
                       ]}
                     >
-                      <WeaveReactionVisual reaction={arrival} mode="arrival" />
+                      <SundayReactionVisual reaction={arrival} mode="arrival" />
                       <View style={styles.recentSupportCopy}>
                         <Text style={styles.supportArrivalTitle}>A little support arrived</Text>
                         <Text style={styles.supportArrivalText}>
@@ -817,7 +817,7 @@ export function SharedGoalDetail({
           />
         )}
         {socialMoment && (
-          <WeaveReactionMoment
+          <SundayReactionMoment
             reaction={socialMoment.reaction}
             mode={socialMoment.mode}
             personName={connection.displayName}

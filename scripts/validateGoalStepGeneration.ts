@@ -81,6 +81,6 @@ assert.ok(edgeFunction.includes("const MODEL = 'gpt-4o-mini'") && edgeFunction.i
 assert.ok(edgeFunction.includes('title,') && edgeFunction.includes('category,') && edgeFunction.includes('dueAt:') && edgeFunction.includes('relationshipMode,'), 'Required goal context is not sent to the model.');
 assert.ok(edgeFunction.includes('smallest meaningful action') && edgeFunction.includes('now or today'), 'Step-one immediate-action guidance is missing.');
 assert.ok(edgeFunction.includes('joining groups') && edgeFunction.includes('unless directly necessary'), 'Generic accountability avoidance is missing.');
-assert.ok(app.includes("console.info('[Weave goal step generation]'") && !app.includes("console.error('[Weave goal step generation]'"), 'Handled generation failure still triggers an intrusive development error overlay.');
+assert.ok(app.includes("console.info('[Sunday goal step generation]'") && !app.includes("console.error('[Sunday goal step generation]'"), 'Handled generation failure still triggers an intrusive development error overlay.');
 
 console.info('Validated intelligent goal-step parsing, async creation boundary, duplicate protection, and server-side structured generation.');

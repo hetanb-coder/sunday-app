@@ -11,5 +11,5 @@ export const recordOnboardingEvent = (
   event: OnboardingEvent,
   properties?: Record<string, string | boolean | null>
 ) => {
-  if (__DEV__) console.info('[Weave onboarding]', event, properties ?? {});
+  if (__DEV__) console.info('[Sunday onboarding]', event, properties ?? {});
 };

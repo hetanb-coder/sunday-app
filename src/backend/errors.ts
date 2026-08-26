@@ -74,7 +74,7 @@ export const logSupabaseError = (
 ) => {
   if (typeof __DEV__ === 'undefined' || !__DEV__) return;
   const diagnostics = getBackendErrorDiagnostics(error);
-  console.error('[Weave Supabase]', {
+  console.error('[Sunday Supabase]', {
     operation,
     rpc: rpcName,
     code: diagnostics.code,

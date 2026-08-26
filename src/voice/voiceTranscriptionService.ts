@@ -64,7 +64,7 @@ export async function transcribeVoiceRecording(
     }
 
     const formData = new FormData();
-    formData.append('file', audioFile, `weave-voice-${Date.now()}${recording.fileExtension}`);
+    formData.append('file', audioFile, `sunday-voice-${Date.now()}${recording.fileExtension}`);
     if (__DEV__) console.info('[Voice] transcription request started', { sizeBytes: audioFile.size });
 
     const response = await expoFetch(`${backendConfig.supabaseUrl}/functions/v1/voice-transcribe`, {

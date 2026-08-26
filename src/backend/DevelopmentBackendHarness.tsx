@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useAuth } from './AuthProvider';
 import { backendConfig } from './config';
-import { weaveDataSource } from './dataSource';
+import { sundayDataSource } from './dataSource';
 import type { BackendConnection, BackendGoal, BackendInvite, BackendProfile } from './domain';
 import { getBackendErrorDiagnostics, toBackendError } from './errors';
 import {
@@ -93,7 +93,7 @@ export function DevelopmentBackendHarness() {
       setError(harnessError);
       setResult(`${action} failed`);
       setConnectionStatus('error');
-      console.error('[Weave backend harness]', {
+      console.error('[Sunday backend harness]', {
         ...harnessError,
       });
       return null;
@@ -181,7 +181,7 @@ export function DevelopmentBackendHarness() {
     if (visible && auth.status === 'signed_in') void refreshAll();
   }, [auth.status, refreshAll, visible]);
 
-  if (!__DEV__ || auth.status !== 'signed_in' || weaveDataSource.mode !== 'supabase') return null;
+  if (!__DEV__ || auth.status !== 'signed_in' || sundayDataSource.mode !== 'supabase') return null;
 
   const currentUserId = auth.user.id;
   const createGoal = async (mode: 'private' | 'shared' | 'supported') => {
@@ -257,7 +257,7 @@ export function DevelopmentBackendHarness() {
               <Fact label="Email" value={auth.user.email ?? 'No email'} />
               <Fact label="User UUID" value={auth.user.id} mono />
               <Fact label="Profile" value={profile ? `${profile.displayName} · ${profile.id}` : 'Not loaded'} />
-              <Fact label="Data source" value={weaveDataSource.mode} />
+              <Fact label="Data source" value={sundayDataSource.mode} />
               <Fact label="Supabase config" value={backendConfig.isSupabaseConfigured ? 'Configured' : 'Not configured'} />
               <Fact label="Connection status" value={connectionStatus.replace('_', ' ')} />
               <Action label="Refresh all backend state" action="Refresh all backend state" busyAction={busyAction} onPress={() => void refreshAll()} />
