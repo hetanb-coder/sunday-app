@@ -166,6 +166,25 @@ type Task = RemoteTask & {
   isFocusHero?: boolean;
 };
 
+type HomeRelationshipContext = {
+  mode: 'together' | 'supported';
+  avatars: Array<{ initials: string; color: string }>;
+};
+
+const homeGreeting = (displayName?: string, now = new Date()) => {
+  const hour = now.getHours();
+  const daypart = hour >= 5 && hour < 12
+    ? 'morning'
+    : hour >= 12 && hour < 17
+      ? 'afternoon'
+      : 'evening';
+  const firstName = (displayName?.trim() ?? '').split(/\s+/)[0] ?? '';
+  const usableFirstName = firstName && !['you', 'undefined', 'null'].includes(firstName.toLowerCase())
+    ? firstName
+    : '';
+  return `Good ${daypart}${usableFirstName ? `, ${usableFirstName}` : ''}.`;
+};
+
 const canCompleteGoal = (task: Pick<Task, 'microSteps'>) =>
   task.microSteps.length === 0 ||
   task.microSteps.every((step) => step.completed);
@@ -2175,7 +2194,36 @@ const [
       : `Supported by ${personName}`;
   };
 
-  const focusRelationshipLabel = hero ? relationshipLabelForTask(hero) : null;
+  const relationshipContextForTask = (task: Task): HomeRelationshipContext | null => {
+    if (task.collaborationMode === 'private') return null;
+    const participantIds = task.collaborationMode === 'shared'
+      ? task.memberIds ?? []
+      : task.supporterIds ?? [];
+    const otherUserId = task.ownerId === currentUserId
+      ? participantIds.find((id) => id !== currentUserId && id !== task.ownerId)
+      : task.ownerId;
+    const connection = connections.find((item) => item.userId === otherUserId);
+    if (task.collaborationMode === 'shared') {
+      return {
+        mode: 'together',
+        avatars: connection
+          ? [{ initials: currentMember.initials, color: currentMember.color }, connection.avatar]
+          : [],
+      };
+    }
+    if (task.collaborationMode === 'supported') {
+      const supporterAvatar = task.ownerId === currentUserId
+        ? connection?.avatar
+        : { initials: currentMember.initials, color: currentMember.color };
+      return {
+        mode: 'supported',
+        avatars: supporterAvatar ? [supporterAvatar] : [],
+      };
+    }
+    return null;
+  };
+
+  const focusRelationshipContext = hero ? relationshipContextForTask(hero) : null;
 
   const notify = (message: string) => {
     setToast(message);
@@ -3354,7 +3402,7 @@ const [
           <View style={styles.container}>
             <View style={styles.header}>
               <Text style={styles.dailyHeader}>
-                Daily Momentum
+                {homeGreeting(currentProfileName)}
               </Text>
 
               <Text style={styles.dailySub}>
@@ -3375,7 +3423,7 @@ const [
                 }
                 reducedMotion={reducedMotion}
                 completionPhase={completionPhases[hero.id]}
-                relationshipLabel={focusRelationshipLabel}
+                relationshipContext={focusRelationshipContext}
                 toggleStep={toggleStep}
                 open={() =>
                   openCanonicalOwnerGoal(hero.id)
@@ -3488,7 +3536,7 @@ const [
                     >
                       <CompactGoalPreview
                         task={task}
-                        relationshipLabel={relationshipLabelForTask(task)}
+                        relationshipContext={relationshipContextForTask(task)}
                         open={() => openCanonicalOwnerGoal(task.id)}
                       />
                     </View>
@@ -4408,13 +4456,15 @@ const [
 
 function CompactGoalPreview({
   task,
-  relationshipLabel,
+  relationshipContext = null,
+  relationshipLabel = null,
   open,
   canDelete = false,
   requestDelete,
 }: {
   task: Task;
-  relationshipLabel: string | null;
+  relationshipContext?: HomeRelationshipContext | null;
+  relationshipLabel?: string | null;
   open: () => void;
   canDelete?: boolean;
   requestDelete?: () => void;
@@ -4436,10 +4486,13 @@ function CompactGoalPreview({
       <View style={[styles.compactGoalIndicator, { backgroundColor: theme.accent }]} />
       <View style={styles.compactGoalCopy}>
         <Text numberOfLines={2} style={styles.compactGoalTitle}>{task.title}</Text>
-        <Text numberOfLines={1} style={styles.compactGoalProgress}>
-          {total > 0 ? `${done} of ${total} steps` : 'First steps are on the way'}
-          {relationshipLabel ? ` · ${relationshipLabel}` : ''}
-        </Text>
+        <View style={styles.compactGoalMeta}>
+          <Text numberOfLines={1} style={styles.compactGoalProgress}>
+            {total > 0 ? `${done} of ${total} steps` : 'First steps are on the way'}
+            {relationshipLabel ? ` · ${relationshipLabel}` : ''}
+          </Text>
+          {relationshipContext ? <HomeRelationshipBadge context={relationshipContext} /> : null}
+        </View>
       </View>
       {canDelete && requestDelete ? (
         <Pressable
@@ -4463,12 +4516,42 @@ function CompactGoalPreview({
   );
 }
 
+function HomeRelationshipBadge({ context }: { context: HomeRelationshipContext }) {
+  return (
+    <View style={styles.homeRelationshipBadge}>
+      {context.avatars.length > 0 ? (
+        <View style={styles.homeRelationshipAvatars}>
+          {context.avatars.map((avatar, index) => (
+            <View
+              key={`${avatar.initials}-${index}`}
+              style={[
+                styles.homeRelationshipAvatar,
+                index > 0 && styles.homeRelationshipAvatarOverlap,
+                { backgroundColor: avatar.color },
+              ]}
+            >
+              <Text style={styles.homeRelationshipAvatarText}>{avatar.initials}</Text>
+            </View>
+          ))}
+        </View>
+      ) : context.mode === 'together' ? (
+        <Users size={11} color="#81758D" strokeWidth={2.3} />
+      ) : (
+        <User size={11} color="#8D756B" strokeWidth={2.3} />
+      )}
+      <Text style={styles.homeRelationshipText}>
+        {context.mode === 'together' ? 'Together' : 'Supported'}
+      </Text>
+    </View>
+  );
+}
+
 function Focus({
   task,
   findingSteps,
   reducedMotion,
   completionPhase,
-  relationshipLabel,
+  relationshipContext,
   toggleStep,
   open,
   complete,
@@ -4479,7 +4562,7 @@ function Focus({
   findingSteps: boolean;
   reducedMotion: boolean;
   completionPhase?: 'acknowledging' | 'departing';
-  relationshipLabel: string | null;
+  relationshipContext: HomeRelationshipContext | null;
   toggleStep: (taskId: string, stepId: string) => void;
   open: () => void;
   complete: () => void;
@@ -4491,6 +4574,7 @@ function Focus({
     task.dueAt,
     Boolean(task.dueHasTime)
   );
+  const done = task.microSteps.filter((step) => step.completed).length;
   const allDone = canCompleteGoal(task);
   const nextStep = task.microSteps.find((step) => !step.completed);
   const [acknowledgingStepId, setAcknowledgingStepId] = useState<string | null>(null);
@@ -4755,18 +4839,12 @@ function Focus({
           <Text style={[styles.heroTitle, { color: c.onSurface }]}> 
             {task.title}
           </Text>
-          {relationshipLabel && (
-            <View style={styles.focusRelationshipRow}>
-              {task.collaborationMode === 'supported' ? (
-                <Heart size={12} color="#A56D55" strokeWidth={2.4} />
-              ) : (
-                <Users size={12} color="#8170B1" strokeWidth={2.4} />
-              )}
-              <Text style={[styles.focusRelationship, { color: c.strong }]}> 
-                {relationshipLabel}
-              </Text>
-            </View>
-          )}
+          <View style={styles.focusContextRow}>
+            <Text style={[styles.focusProgress, { color: c.strong }]}>
+              {done} of {task.microSteps.length} steps
+            </Text>
+            {relationshipContext ? <HomeRelationshipBadge context={relationshipContext} /> : null}
+          </View>
 
           {nextStep ? (
             <AnimatedReanimated.View
@@ -10280,21 +10358,21 @@ const styles = StyleSheet.create({
   },
 
   header: {
-    marginBottom: 20,
+    marginBottom: 18,
   },
 
   dailyHeader: {
-    fontSize: 27,
-    lineHeight: 31,
+    fontSize: 24,
+    lineHeight: 29,
     fontWeight: '900',
     color: colors.textPrimary,
     letterSpacing: -0.8,
   },
 
   dailySub: {
-    fontSize: 10.5,
-    color: '#A1A1AA',
-    marginTop: 3,
+    fontSize: 11,
+    color: colors.textSecondary,
+    marginTop: 4,
     fontWeight: '600',
   },
 
@@ -10382,7 +10460,7 @@ const styles = StyleSheet.create({
   },
 
   focus: {
-    marginBottom: 20,
+    marginBottom: 18,
   },
 
   focusHead: {
@@ -10391,7 +10469,7 @@ const styles = StyleSheet.create({
       'space-between',
     alignItems: 'center',
     paddingHorizontal: 2,
-    marginBottom: 10,
+    marginBottom: 8,
   },
 
   focusHeadLeft: {
@@ -10424,7 +10502,7 @@ const styles = StyleSheet.create({
   hero: {
     overflow: 'hidden',
     borderRadius: 23,
-    padding: 14,
+    padding: 12,
   },
 
   heroElevation: {
@@ -10471,7 +10549,7 @@ const styles = StyleSheet.create({
     justifyContent:
       'space-between',
     alignItems: 'center',
-    marginBottom: 9,
+    marginBottom: 7,
   },
 
   badge: {
@@ -10542,21 +10620,22 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     fontWeight: '900',
     letterSpacing: -0.3,
-    marginBottom: 10,
+    marginBottom: 6,
   },
 
-  focusRelationship: {
-    fontSize: 10,
-    lineHeight: 14,
-    fontWeight: '700',
-  },
-
-  focusRelationshipRow: {
+  focusContextRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginTop: -4,
-    marginBottom: 10,
+    justifyContent: 'space-between',
+    gap: 8,
+    marginBottom: 7,
+  },
+
+  focusProgress: {
+    flexShrink: 1,
+    fontSize: 9.5,
+    lineHeight: 13,
+    fontWeight: '700',
   },
 
   focusNextStep: {
@@ -10565,14 +10644,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceWarm,
     borderRadius: 15,
     paddingHorizontal: 11,
-    paddingVertical: 9,
+    paddingVertical: 7,
   },
 
   focusNextLabel: {
     fontSize: 8,
     fontWeight: '900',
     letterSpacing: 0.8,
-    marginBottom: 5,
+    marginBottom: 3,
   },
 
   focusNextAction: {
@@ -10896,8 +10975,8 @@ const styles = StyleSheet.create({
   },
 
   compactGoalPreview: {
-    minHeight: 62,
-    paddingVertical: 10,
+    minHeight: 64,
+    paddingVertical: 11,
     paddingHorizontal: 2,
     flexDirection: 'row',
     alignItems: 'center',
@@ -10933,11 +11012,58 @@ const styles = StyleSheet.create({
   },
 
   compactGoalProgress: {
-    marginTop: 3,
     color: '#908A94',
     fontSize: 9.5,
     lineHeight: 13,
     fontWeight: '600',
+    flexShrink: 1,
+  },
+
+  compactGoalMeta: {
+    marginTop: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+
+  homeRelationshipBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    flexShrink: 0,
+  },
+
+  homeRelationshipAvatars: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  homeRelationshipAvatar: {
+    width: 15,
+    height: 15,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  homeRelationshipAvatarOverlap: {
+    marginLeft: -5,
+  },
+
+  homeRelationshipAvatarText: {
+    color: colors.onStrong,
+    fontSize: 6,
+    lineHeight: 8,
+    fontWeight: '900',
+  },
+
+  homeRelationshipText: {
+    color: '#81758D',
+    fontSize: 8.5,
+    lineHeight: 12,
+    fontWeight: '800',
   },
 
   libraryDeleteGoal: {
