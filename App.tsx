@@ -1379,7 +1379,6 @@ function NewGoalDueDatePickerSheet({
   visible,
   dismissRequest,
   dueAt,
-  dueHasTime,
   onChange,
   onClose,
 }: {
@@ -1391,29 +1390,38 @@ function NewGoalDueDatePickerSheet({
   onClose: () => void;
 }) {
   const insets = useSafeAreaInsets();
-  const { height: viewportHeight } = useWindowDimensions();
+  const { height: viewportHeight, width: viewportWidth } = useWindowDimensions();
   const initialDate = dueAt ? new Date(dueAt) : addLocalDays(new Date(), 1);
   const [selectedDate, setSelectedDate] = useState(initialDate);
-  const [hasTime, setHasTime] = useState(dueHasTime);
   const [hasDueDate, setHasDueDate] = useState(Boolean(dueAt));
-  const [pickerMode, setPickerMode] = useState<'quick' | 'calendar' | 'time'>('quick');
   const [visibleMonth, setVisibleMonth] = useState(
     new Date(initialDate.getFullYear(), initialDate.getMonth(), 1)
   );
+  const [outgoingMonth, setOutgoingMonth] = useState<Date | null>(null);
+  const [monthDirection, setMonthDirection] = useState<1 | -1>(1);
   const sheetY = useRef(new Animated.Value(viewportHeight)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
+  const monthProgress = useRef(new Animated.Value(0)).current;
   const closingRef = useRef(false);
+  const monthAnimatingRef = useRef(false);
+  const queuedMonthDeltaRef = useRef(0);
+  const visibleMonthRef = useRef(visibleMonth);
 
   useEffect(() => {
     if (!visible) return;
     const nextDate = dueAt
       ? new Date(dueAt)
       : addLocalDays(new Date(), 1);
+    const nextMonth = new Date(nextDate.getFullYear(), nextDate.getMonth(), 1);
     setSelectedDate(nextDate);
-    setHasTime(dueHasTime);
     setHasDueDate(Boolean(dueAt));
-    setPickerMode('quick');
-    setVisibleMonth(new Date(nextDate.getFullYear(), nextDate.getMonth(), 1));
+    setVisibleMonth(nextMonth);
+    setOutgoingMonth(null);
+    visibleMonthRef.current = nextMonth;
+    monthAnimatingRef.current = false;
+    queuedMonthDeltaRef.current = 0;
+    monthProgress.stopAnimation();
+    monthProgress.setValue(0);
     closingRef.current = false;
     sheetY.setValue(viewportHeight);
     backdropOpacity.setValue(0);
@@ -1431,7 +1439,7 @@ function NewGoalDueDatePickerSheet({
         useNativeDriver: true,
       }),
     ]).start();
-  }, [backdropOpacity, sheetY, viewportHeight, visible]);
+  }, [backdropOpacity, monthProgress, sheetY, viewportHeight, visible]);
 
   const closeSurface = () => {
     if (closingRef.current) return;
@@ -1461,14 +1469,19 @@ function NewGoalDueDatePickerSheet({
 
   if (!visible) return null;
 
-  const updateDraft = (date: Date, nextHasTime: boolean) => {
+  const updateDraft = (date: Date) => {
     setSelectedDate(date);
-    setHasTime(nextHasTime);
     setHasDueDate(true);
   };
   const selectQuickDate = (date: Date) => {
-    updateDraft(date, false);
-    setVisibleMonth(new Date(date.getFullYear(), date.getMonth(), 1));
+    updateDraft(date);
+    monthProgress.stopAnimation();
+    monthAnimatingRef.current = false;
+    queuedMonthDeltaRef.current = 0;
+    setOutgoingMonth(null);
+    const nextMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+    visibleMonthRef.current = nextMonth;
+    setVisibleMonth(nextMonth);
   };
   const quickChoices = [
     { label: 'Today', date: addLocalDays(new Date(), 0) },
@@ -1482,18 +1495,13 @@ function NewGoalDueDatePickerSheet({
     },
   ];
   const today = new Date();
-  const firstCalendarDate = addLocalDays(visibleMonth, -visibleMonth.getDay());
-  const daysInVisibleMonth = new Date(
-    visibleMonth.getFullYear(),
-    visibleMonth.getMonth() + 1,
-    0
-  ).getDate();
-  const visibleCalendarCellCount = Math.ceil(
-    (visibleMonth.getDay() + daysInVisibleMonth) / 7
-  ) * 7;
-  const calendarDates = Array.from({ length: visibleCalendarCellCount }, (_, index) =>
-    addLocalDays(firstCalendarDate, index)
-  );
+  const calendarDatesForMonth = (month: Date) => {
+    const mondayOffset = (month.getDay() + 6) % 7;
+    const firstCalendarDate = addLocalDays(month, -mondayOffset);
+    return Array.from({ length: 42 }, (_, index) =>
+      addLocalDays(firstCalendarDate, index)
+    );
+  };
   const canGoToPreviousMonth =
     visibleMonth.getFullYear() > today.getFullYear() ||
     visibleMonth.getMonth() > today.getMonth();
@@ -1501,19 +1509,83 @@ function NewGoalDueDatePickerSheet({
     month: 'long',
     year: 'numeric',
   });
-  const selectedSummary = formatDue(
-    hasDueDate
-      ? normalizeDueDate(selectedDate, hasTime)
-      : undefined,
-    hasTime,
-    false
+  const startMonthTransition = (direction: 1 | -1) => {
+    if (monthAnimatingRef.current) {
+      queuedMonthDeltaRef.current += direction;
+      return;
+    }
+    const currentMonth = visibleMonthRef.current;
+    const nextMonth = new Date(
+      currentMonth.getFullYear(),
+      currentMonth.getMonth() + direction,
+      1
+    );
+    const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    if (nextMonth < currentMonthStart) return;
+
+    monthAnimatingRef.current = true;
+    setMonthDirection(direction);
+    setOutgoingMonth(currentMonth);
+    visibleMonthRef.current = nextMonth;
+    setVisibleMonth(nextMonth);
+    monthProgress.setValue(0);
+    Animated.timing(monthProgress, {
+      toValue: 1,
+      duration: 260,
+      easing: Easing.bezier(0.22, 1, 0.36, 1),
+      useNativeDriver: true,
+    }).start(({ finished }) => {
+      monthAnimatingRef.current = false;
+      setOutgoingMonth(null);
+      monthProgress.setValue(0);
+      if (!finished) return;
+      const queuedDelta = queuedMonthDeltaRef.current;
+      if (queuedDelta === 0) return;
+      const queuedDirection: 1 | -1 = queuedDelta > 0 ? 1 : -1;
+      queuedMonthDeltaRef.current -= queuedDirection;
+      startMonthTransition(queuedDirection);
+    });
+  };
+  const renderCalendarGrid = (month: Date) => (
+    <View style={styles.dueCalendarGrid}>
+      {calendarDatesForMonth(month).map((date) => {
+        const selected = hasDueDate && sameLocalDay(date, selectedDate);
+        const inMonth =
+          date.getMonth() === month.getMonth() &&
+          date.getFullYear() === month.getFullYear();
+        const disabled = date < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        return (
+          <Pressable
+            key={date.toISOString()}
+            accessibilityRole="button"
+            accessibilityLabel={date.toLocaleDateString()}
+            accessibilityState={{ selected, disabled }}
+            disabled={disabled}
+            hitSlop={{ top: 2, bottom: 2 }}
+            onPress={() => updateDraft(date)}
+            style={styles.dueCalendarDay}
+          >
+            <View style={[styles.dueCalendarDayCircle, selected && styles.dueCalendarDaySelected]}>
+              <Text style={[
+                styles.dueCalendarDayText,
+                !inMonth && styles.dueCalendarDayOutside,
+                disabled && styles.dueCalendarDayDisabled,
+                selected && styles.dueCalendarDayTextSelected,
+              ]}>
+                {date.getDate()}
+              </Text>
+            </View>
+          </Pressable>
+        );
+      })}
+    </View>
   );
   const handleDone = () => {
     onChange(
       hasDueDate
-        ? normalizeDueDate(selectedDate, hasTime)
+        ? normalizeDueDate(selectedDate, false)
         : undefined,
-      hasDueDate ? hasTime : false
+      false
     );
     closeSurface();
   };
@@ -1533,8 +1605,7 @@ function NewGoalDueDatePickerSheet({
             { transform: [{ translateY: sheetY }] },
           ]}
         >
-        <AnimatedReanimated.View
-          layout={LinearTransition.duration(260)}
+        <View
           style={[
             styles.duePickerSheet,
             { paddingBottom: Math.max(16, insets.bottom + 8) },
@@ -1565,18 +1636,12 @@ function NewGoalDueDatePickerSheet({
             scrollEnabled={viewportHeight < 700}
             contentContainerStyle={styles.duePickerContent}
           >
-
-          {pickerMode !== 'time' && (
-          <AnimatedReanimated.View
-            entering={FadeInDown.duration(190)}
-            style={styles.dueQuickChoices}
-          >
+          <View style={styles.dueQuickChoices}>
             <Pressable
               accessibilityRole="button"
               accessibilityState={{ selected: !hasDueDate }}
               onPress={() => {
                 setHasDueDate(false);
-                setHasTime(false);
               }}
               style={({ pressed }) => [
                 styles.dueQuickChipPressable,
@@ -1624,15 +1689,9 @@ function NewGoalDueDatePickerSheet({
                 </Pressable>
               );
             })}
-          </AnimatedReanimated.View>
-          )}
+          </View>
 
-          {pickerMode !== 'time' && (
-          <AnimatedReanimated.View
-            entering={FadeInDown.duration(220)}
-            exiting={FadeOutUp.duration(160)}
-            style={styles.dueCalendarSurface}
-          >
+          <View style={styles.dueCalendarSurface}>
             <View style={styles.dueCalendarHeader}>
               <Text style={styles.dueCalendarMonth} numberOfLines={1}>
                 {monthLabel}
@@ -1643,9 +1702,7 @@ function NewGoalDueDatePickerSheet({
                   accessibilityLabel="Previous month"
                   disabled={!canGoToPreviousMonth}
                   hitSlop={3}
-                  onPress={() => setVisibleMonth((month) =>
-                    new Date(month.getFullYear(), month.getMonth() - 1, 1)
-                  )}
+                  onPress={() => startMonthTransition(-1)}
                   style={styles.dueCalendarArrow}
                 >
                   <ChevronRight
@@ -1658,9 +1715,7 @@ function NewGoalDueDatePickerSheet({
                   accessibilityRole="button"
                   accessibilityLabel="Next month"
                   hitSlop={3}
-                  onPress={() => setVisibleMonth((month) =>
-                    new Date(month.getFullYear(), month.getMonth() + 1, 1)
-                  )}
+                  onPress={() => startMonthTransition(1)}
                   style={styles.dueCalendarArrow}
                 >
                   <ChevronRight size={19} color="#6C5750" />
@@ -1668,104 +1723,56 @@ function NewGoalDueDatePickerSheet({
               </View>
             </View>
             <View style={styles.dueCalendarWeekdays}>
-              {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((weekday, index) => (
+              {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((weekday, index) => (
                 <Text key={`${weekday}-${index}`} style={styles.dueCalendarWeekday}>
                   {weekday}
                 </Text>
               ))}
             </View>
-            <View style={styles.dueCalendarGrid}>
-              {calendarDates.map((date) => {
-                const selected = hasDueDate && sameLocalDay(date, selectedDate);
-                const inMonth = date.getMonth() === visibleMonth.getMonth();
-                const disabled = date < new Date(today.getFullYear(), today.getMonth(), today.getDate());
-                return (
-                  <Pressable
-                    key={date.toISOString()}
-                    accessibilityRole="button"
-                    accessibilityLabel={date.toLocaleDateString()}
-                    accessibilityState={{ selected, disabled }}
-                    disabled={disabled}
-                    hitSlop={{ top: 2, bottom: 2 }}
-                    onPress={() => updateDraft(date, hasTime)}
-                    style={styles.dueCalendarDay}
-                  >
-                    <View style={[styles.dueCalendarDayCircle, selected && styles.dueCalendarDaySelected]}>
-                      <Text style={[
-                        styles.dueCalendarDayText,
-                        !inMonth && styles.dueCalendarDayOutside,
-                        disabled && styles.dueCalendarDayDisabled,
-                        selected && styles.dueCalendarDayTextSelected,
-                      ]}>
-                        {date.getDate()}
-                      </Text>
-                    </View>
-                  </Pressable>
-                );
-              })}
+            <View style={styles.dueCalendarGridViewport}>
+              {outgoingMonth && (
+                <Animated.View
+                  pointerEvents="none"
+                  style={[
+                    styles.dueCalendarGridLayer,
+                    {
+                      transform: [{
+                        translateX: monthProgress.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, -monthDirection * viewportWidth],
+                        }),
+                      }],
+                    },
+                  ]}
+                >
+                  {renderCalendarGrid(outgoingMonth)}
+                </Animated.View>
+              )}
+              <Animated.View
+                style={[
+                  styles.dueCalendarGridLayer,
+                  {
+                    transform: [{
+                      translateX: outgoingMonth
+                        ? monthProgress.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [monthDirection * viewportWidth, 0],
+                          })
+                        : 0,
+                    }],
+                  },
+                ]}
+              >
+                {renderCalendarGrid(visibleMonth)}
+              </Animated.View>
             </View>
-          </AnimatedReanimated.View>
-          )}
-
-          {pickerMode === 'time' && (
-            <AnimatedReanimated.View
-              entering={FadeInDown.duration(210)}
-              style={styles.dueTimePicker}
-            >
-              <DateTimePicker
-                value={selectedDate}
-                mode="time"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                onChange={(_event, date) => {
-                  if (date) {
-                    updateDraft(date, true);
-                    if (Platform.OS !== 'ios') {
-                      setPickerMode('quick');
-                    }
-                  }
-                }}
-              />
-              <Pressable
-                onPress={() => {
-                  updateDraft(selectedDate, false);
-                  setPickerMode('quick');
-                }}
-              >
-                <Text style={styles.dueRemoveTime}>Remove time</Text>
-              </Pressable>
-            </AnimatedReanimated.View>
-          )}
-
-          {hasDueDate && pickerMode !== 'time' && (
-            <AnimatedReanimated.View
-              entering={FadeInDown.duration(180)}
-              style={[styles.dueSelectionSummary, styles.newGoalDueSelectionSummary]}
-            >
-              <View style={styles.dueSelectionCopy}>
-                <Text style={styles.dueTimeLabel}>Selected</Text>
-                <Text style={styles.dueTimeValue}>
-                  {selectedSummary?.label}
-                </Text>
-              </View>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={hasTime ? 'Change due time' : 'Add due time'}
-                onPress={() => setPickerMode('time')}
-                style={[styles.dueAddTime, styles.newGoalDueAddTime]}
-              >
-                <Clock3 size={13} color="#52525B" />
-                <Text style={styles.dueAddTimeText}>
-                  {hasTime ? 'Change time' : 'Add time'}
-                </Text>
-              </Pressable>
-            </AnimatedReanimated.View>
-          )}
+          </View>
 
           </ScrollView>
 
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={hasDueDate ? 'Set due date' : 'Set no due date'}
+            accessibilityLabel="Done choosing due date"
             onPress={handleDone}
             style={({ pressed }) => [
               styles.secondarySheetCta,
@@ -1773,9 +1780,9 @@ function NewGoalDueDatePickerSheet({
               pressed && styles.pressed,
             ]}
           >
-            <Text style={styles.secondarySheetCtaText}>SET DUE DATE</Text>
+            <Text style={styles.secondarySheetCtaText}>DONE</Text>
           </Pressable>
-        </AnimatedReanimated.View>
+        </View>
         </Animated.View>
       </View>
   );
@@ -11952,6 +11959,7 @@ const styles = StyleSheet.create({
   },
 
   duePickerSheet: {
+    width: '100%',
     maxHeight: '96%',
     paddingHorizontal: 22,
     paddingTop: 6,
@@ -12374,13 +12382,9 @@ const styles = StyleSheet.create({
   },
 
   dueCalendarSurface: {
-    paddingHorizontal: 14,
-    paddingTop: 12,
-    paddingBottom: 10,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#EEDCD5',
-    backgroundColor: '#FFF8F5',
+    paddingHorizontal: 2,
+    paddingTop: 4,
+    paddingBottom: 0,
   },
 
   dueCalendarHeader: {
@@ -12430,6 +12434,16 @@ const styles = StyleSheet.create({
   dueCalendarGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+  },
+
+  dueCalendarGridViewport: {
+    position: 'relative',
+    height: 240,
+    overflow: 'hidden',
+  },
+
+  dueCalendarGridLayer: {
+    ...StyleSheet.absoluteFillObject,
   },
 
   dueCalendarDay: {

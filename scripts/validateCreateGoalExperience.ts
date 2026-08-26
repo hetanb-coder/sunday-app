@@ -73,9 +73,11 @@ requireCondition(modal.includes('opacity: morphCardOpacity') && modal.includes('
 requireCondition(modal.includes("...(transitionSheetFrame ? { height: '100%' as const } : null)"), 'Native morph wrapper is constraining the pre-measurement sheet geometry.');
 
 requireCondition(chooser.includes('Doing this') && chooser.includes('I’m doing this for myself.') && chooser.includes("We're working toward this together.") && chooser.includes('I’m doing this, with someone in my corner.') && chooser.includes('CONTINUE'), 'Locked relationship choices changed.');
-requireCondition(due.includes('selectQuickDate') && due.includes('normalizeDueDate(selectedDate, hasTime)') && due.includes('sameLocalDay(date, selectedDate)') && due.includes('SET DUE DATE'), 'Locked synchronized Due Date behavior changed.');
-requireCondition(due.includes('visibleCalendarCellCount') && due.includes('scrollEnabled={viewportHeight < 700}') && due.includes('styles.newGoalDueSelectionSummary'), 'Responsive Due Date sheet layout contract changed.');
-requireCondition(due.indexOf('</ScrollView>') < due.indexOf('SET DUE DATE'), 'Due Date CTA must remain outside the clipped scroll viewport.');
+requireCondition(due.includes('selectQuickDate') && due.includes('normalizeDueDate(selectedDate, false)') && due.includes('sameLocalDay(date, selectedDate)') && due.includes('>DONE<'), 'Locked synchronized date-only Due Date behavior changed.');
+requireCondition(due.includes('Array.from({ length: 42 }') && due.includes('styles.dueCalendarGridViewport') && due.includes('scrollEnabled={viewportHeight < 700}'), 'Fixed six-row Due Date calendar contract changed.');
+requireCondition(due.includes('duration: 260') && due.includes('translateX: monthProgress.interpolate') && due.includes('queuedMonthDeltaRef'), 'Due Date month paging motion or rapid-input protection changed.');
+requireCondition(!due.includes('Add due time') && !due.includes('Change due time') && !due.includes('styles.newGoalDueSelectionSummary'), 'Removed New Goal due-time UI returned.');
+requireCondition(due.indexOf('</ScrollView>') < due.indexOf('>DONE<'), 'Due Date CTA must remain outside the clipped scroll viewport.');
 requireCondition(!due.includes('<Modal') && !chooser.includes('<Modal') && due.includes('styles.newGoalChildSheetRoot') && chooser.includes('styles.newGoalChildSheetRoot'), 'New Goal child sheets crossed a native Modal boundary.');
 requireCondition(due.includes('toValue: viewportHeight') && chooser.includes('toValue: viewportHeight') && due.includes('opacity: backdropOpacity') && chooser.includes('opacity: backdropOpacity'), 'Child sheet dismissal or backdrop continuity is incomplete.');
 requireCondition(modal.includes('dismissRequest={dueDismissRequest}') && modal.includes('dismissRequest={togetherDismissRequest}') && modal.includes('if (duePickerOpen)') && modal.includes('if (togetherPickerOpen)'), 'System dismissal is not routed through the active child sheet lifecycle.');
