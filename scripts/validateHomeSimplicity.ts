@@ -27,6 +27,7 @@ requireCondition(home.includes('Add something new'), 'Cleared-flow CTA is missin
 requireCondition(home.includes('OTHER GOALS · {regular.length}'), 'Compact Other Goals hierarchy is missing.');
 requireCondition(source.includes('return regular.slice(0, 2)') && home.includes('homePreviewTasks.map'), 'Home does not cap secondary previews at two.');
 requireCondition(home.includes("setLibraryView('active')"), 'View all does not use the shared goal library presentation.');
+requireCondition(source.includes('const activeGoalLibraryTasks = hero') && source.includes('? activeGoalLibraryTasks'), 'View all does not include Current Focus in the complete active-goal collection.');
 requireCondition(home.includes('<CompactGoalPreview') && source.includes('function CompactGoalPreview'), 'Compact goal previews are missing.');
 requireCondition(!home.includes('homeMomentTask') && !source.includes('function SundayMoment'), 'Home still renders an out-of-scope Sunday Moment.');
 requireCondition(!home.includes('Recently Deleted ·'), 'Home still links Recently Deleted.');

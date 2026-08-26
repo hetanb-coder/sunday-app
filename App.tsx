@@ -2141,6 +2141,9 @@ const [
   };
 
   const remaining = activeTasks.length;
+  const activeGoalLibraryTasks = hero
+    ? [hero, ...regular]
+    : regular;
   const homePreviewTasks = useMemo(() => {
     const entering = enteringTaskId
       ? regular.find((task) => task.id === enteringTaskId)
@@ -4290,7 +4293,7 @@ const [
         mode={libraryView}
         tasks={
           libraryView === 'active'
-            ? regular
+            ? activeGoalLibraryTasks
             : libraryView === 'completed'
             ? completedTasks
             : deletedTasks
