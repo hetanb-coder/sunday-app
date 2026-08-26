@@ -2141,10 +2141,6 @@ const [
   };
 
   const remaining = activeTasks.length;
-  const homeMomentTask = regular.find((task) => {
-    const urgency = getGoalUrgency(task);
-    return urgency === 'overdue' || urgency === 'today' || urgency === 'tomorrow';
-  }) ?? null;
   const homePreviewTasks = useMemo(() => {
     const entering = enteringTaskId
       ? regular.find((task) => task.id === enteringTaskId)
@@ -3495,18 +3491,6 @@ const [
                     </View>
                   ))}
                 </View>
-                {regular.length > 2 && (
-                  <Pressable
-                    accessibilityRole="button"
-                    onPress={() => setLibraryView('active')}
-                    style={({ pressed }) => [styles.moreGoalsLink, pressed && styles.pressed]}
-                  >
-                    <Text style={styles.moreGoalsLinkText}>+{regular.length - 2} more {regular.length - 2 === 1 ? 'goal' : 'goals'}</Text>
-                  </Pressable>
-                )}
-                {homeMomentTask && (
-                  <SundayMoment task={homeMomentTask} />
-                )}
               </View>
             ) : null}
 
@@ -4316,6 +4300,11 @@ const [
           setLibraryView(null);
           openCanonicalOwnerGoal(taskId);
         }}
+        relationshipLabelForTask={relationshipLabelForTask}
+        canDeleteTask={(task) =>
+          deriveGoalViewPermissions(task.ownerId, currentUserId, task).canDelete
+        }
+        requestDeleteGoal={requestDeleteGoal}
         prepareRestore={prepareLibraryRestore}
         commitRestore={commitLibraryRestore}
         preparePermanentDelete={preparePermanentDelete}
@@ -4418,10 +4407,14 @@ function CompactGoalPreview({
   task,
   relationshipLabel,
   open,
+  canDelete = false,
+  requestDelete,
 }: {
   task: Task;
   relationshipLabel: string | null;
   open: () => void;
+  canDelete?: boolean;
+  requestDelete?: () => void;
 }) {
   const theme = COLORS[task.category];
   const done = task.microSteps.filter((step) => step.completed).length;
@@ -4445,26 +4438,25 @@ function CompactGoalPreview({
           {relationshipLabel ? ` · ${relationshipLabel}` : ''}
         </Text>
       </View>
+      {canDelete && requestDelete ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Delete ${task.title}`}
+          hitSlop={8}
+          onPress={(event) => {
+            event.stopPropagation();
+            requestDelete();
+          }}
+          style={({ pressed }) => [
+            styles.libraryDeleteGoal,
+            pressed && styles.pressed,
+          ]}
+        >
+          <Trash2 size={15} color="#A59DA8" />
+        </Pressable>
+      ) : null}
       <ChevronRight size={15} color="#B0A9B7" />
     </Pressable>
-  );
-}
-
-function SundayMoment({ task }: { task: Task }) {
-  const due = formatDue(task.dueAt, Boolean(task.dueHasTime));
-  if (!due) return null;
-  return (
-    <View style={styles.sundayMoment}>
-      <View style={styles.sundayMomentIcon}>
-        <CalendarDays size={15} color="#8F7BC4" />
-      </View>
-      <View style={styles.sundayMomentCopy}>
-        <Text style={styles.sundayMomentKicker}>A gentle heads-up</Text>
-        <Text numberOfLines={2} style={styles.sundayMomentText}>
-          {task.title} · {due.label}
-        </Text>
-      </View>
-    </View>
   );
 }
 
@@ -4496,10 +4488,6 @@ function Focus({
     task.dueAt,
     Boolean(task.dueHasTime)
   );
-  const done = task.microSteps.filter(
-    (step) => step.completed
-  ).length;
-
   const allDone = canCompleteGoal(task);
   const nextStep = task.microSteps.find((step) => !step.completed);
   const [acknowledgingStepId, setAcknowledgingStepId] = useState<string | null>(null);
@@ -4527,7 +4515,7 @@ function Focus({
     new Animated.Value(0)
   ).current;
   const focusColorProgress = useRef(new Animated.Value(1)).current;
-  const previousFocusSurface = useRef(c.surface);
+  const previousFocusSurface = useRef(colors.peachPastel);
   const previousFocusTaskId = useRef(task.id);
   const lastShakeNonce = useRef(shakeNonce);
   const pressProgress = useSharedValue(0);
@@ -4641,7 +4629,7 @@ function Focus({
     nativeContentTransition.start();
     surfaceTransition.start(({ finished }) => {
       if (finished && previousFocusTaskId.current === task.id) {
-        previousFocusSurface.current = c.surface;
+        previousFocusSurface.current = colors.peachPastel;
       }
     });
 
@@ -4649,40 +4637,18 @@ function Focus({
       nativeContentTransition.stop();
       surfaceTransition.stop();
     };
-  }, [task.id, c.surface, reducedMotion, focusColorProgress, focusContentOpacity, focusContentY]);
+  }, [task.id, reducedMotion, focusColorProgress, focusContentOpacity, focusContentY]);
 
   const focusSurface = focusColorProgress.interpolate({
     inputRange: [0, 1],
-    outputRange: [previousFocusSurface.current, c.surface],
+    outputRange: [previousFocusSurface.current, colors.peachPastel],
   });
 
   return (
     <View style={styles.focus}>
       <View style={styles.focusHead}>
         <View style={styles.focusHeadLeft}>
-          <View
-            style={[
-              styles.flame,
-              {
-                backgroundColor: c.surfaceSoft,
-              },
-            ]}
-          >
-            <Flame
-              size={13}
-              color={c.strong}
-              fill={c.strong}
-            />
-          </View>
-
-          <Text
-            style={[
-              styles.focusLabel,
-              {
-                color: c.strong,
-              },
-            ]}
-          >
+          <Text style={styles.focusLabel}>
             CURRENT FOCUS
           </Text>
         </View>
@@ -4780,23 +4746,7 @@ function Focus({
                   {duePresentation.label.toUpperCase()}
                 </Text>
               </View>
-            ) : (
-              <View
-                style={[
-                  styles.micro,
-                  { backgroundColor: c.surfaceSoft },
-                ]}
-              >
-                <Clock3
-                  size={11}
-                  color={c.strong}
-                />
-
-                <Text style={[styles.microText, { color: c.strong }]}> 
-                  {done} of {task.microSteps.length} steps
-                </Text>
-              </View>
-            )}
+            ) : null}
           </View>
 
           <Text style={[styles.heroTitle, { color: c.onSurface }]}> 
@@ -4820,7 +4770,7 @@ function Focus({
               key={nextStep.id}
               entering={FadeInDown.duration(reducedMotion ? motion.duration.reduced : motion.duration.reveal)}
               layout={LinearTransition.duration(reducedMotion ? motion.duration.reduced : motion.duration.move)}
-              style={[styles.focusNextStep, { borderColor: `${c.accent}38`, backgroundColor: c.surfaceSoft }]}
+              style={styles.focusNextStep}
             >
               <Text style={[styles.focusNextLabel, { color: c.strong }]}>NEXT STEP</Text>
               <Pressable
@@ -7161,6 +7111,9 @@ function GoalLibraryModal({
   tasks,
   close,
   openActiveGoal,
+  relationshipLabelForTask,
+  canDeleteTask,
+  requestDeleteGoal,
   prepareRestore,
   commitRestore,
   preparePermanentDelete,
@@ -7171,6 +7124,9 @@ function GoalLibraryModal({
   tasks: Task[];
   close: () => void;
   openActiveGoal: (taskId: string) => void;
+  relationshipLabelForTask: (task: Task) => string | null;
+  canDeleteTask: (task: Task) => boolean;
+  requestDeleteGoal: (taskId: string) => void;
   prepareRestore: (taskId: string) => Promise<boolean>;
   commitRestore: (taskId: string) => void;
   preparePermanentDelete: (taskId: string) => Promise<boolean>;
@@ -7335,7 +7291,9 @@ function GoalLibraryModal({
               <CompactGoalPreview
                 key={task.id}
                 task={task}
-                relationshipLabel={null}
+                relationshipLabel={relationshipLabelForTask(task)}
+                canDelete={canDeleteTask(task)}
+                requestDelete={() => requestDeleteGoal(task.id)}
                 open={() => {
                   activeGoalAfterDismissRef.current = task.id;
                   dismiss();
@@ -10319,7 +10277,7 @@ const styles = StyleSheet.create({
   },
 
   header: {
-    marginBottom: 17,
+    marginBottom: 20,
   },
 
   dailyHeader: {
@@ -10421,7 +10379,7 @@ const styles = StyleSheet.create({
   },
 
   focus: {
-    marginBottom: 23,
+    marginBottom: 20,
   },
 
   focusHead: {
@@ -10430,7 +10388,7 @@ const styles = StyleSheet.create({
       'space-between',
     alignItems: 'center',
     paddingHorizontal: 2,
-    marginBottom: 9,
+    marginBottom: 10,
   },
 
   focusHeadLeft: {
@@ -10448,9 +10406,10 @@ const styles = StyleSheet.create({
   },
 
   focusLabel: {
-    fontSize: 10,
+    color: '#A84E38',
+    fontSize: 9,
     fontWeight: '900',
-    letterSpacing: 1.05,
+    letterSpacing: 1.45,
   },
 
   focusHint: {
@@ -10461,31 +10420,27 @@ const styles = StyleSheet.create({
 
   hero: {
     overflow: 'hidden',
-    borderRadius: 30,
-    padding: 19,
+    borderRadius: 23,
+    padding: 14,
   },
 
   heroElevation: {
-    borderRadius: 30,
+    borderRadius: 23,
     shadowColor: colors.warmShadow,
-    shadowOpacity: 0.075,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 3,
+    shadowOpacity: 0.045,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 7 },
+    elevation: 1,
   },
 
   heroMotionSurface: {
-    borderRadius: 30,
+    borderRadius: 23,
   },
 
   heroDepth: {
-    position: 'absolute',
-    left: 4,
-    right: 4,
-    top: 4,
-    bottom: -4,
-    borderRadius: 30,
-    opacity: 0.16,
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 23,
+    opacity: 0.08,
   },
 
   heroPressed: {
@@ -10513,7 +10468,7 @@ const styles = StyleSheet.create({
     justifyContent:
       'space-between',
     alignItems: 'center',
-    marginBottom: 13,
+    marginBottom: 9,
   },
 
   badge: {
@@ -10523,10 +10478,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surfaceWarm,
-    borderRadius: 20,
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    maxWidth: '52%',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    maxWidth: '58%',
   },
 
   badgeDot: {
@@ -10561,9 +10516,9 @@ const styles = StyleSheet.create({
   },
 
   heroDueMetadata: {
-    maxWidth: '46%',
-    minHeight: 26,
-    paddingHorizontal: 7,
+    maxWidth: '42%',
+    minHeight: 24,
+    paddingHorizontal: 4,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
@@ -10579,12 +10534,12 @@ const styles = StyleSheet.create({
   },
 
   heroTitle: {
-    color: colors.textPrimary,
-    fontSize: 21,
-    lineHeight: 26,
-    fontWeight: '800',
-    letterSpacing: -0.45,
-    marginBottom: 14,
+    color: '#8A3827',
+    fontSize: 17,
+    lineHeight: 22,
+    fontWeight: '900',
+    letterSpacing: -0.3,
+    marginBottom: 10,
   },
 
   focusRelationship: {
@@ -10597,16 +10552,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginTop: -6,
-    marginBottom: 14,
+    marginTop: -4,
+    marginBottom: 10,
   },
 
   focusNextStep: {
     borderWidth: 1,
-    borderRadius: 18,
-    paddingHorizontal: 13,
-    paddingVertical: 8,
-    marginBottom: 2,
+    borderColor: '#EBC7BA',
+    backgroundColor: colors.surfaceWarm,
+    borderRadius: 15,
+    paddingHorizontal: 11,
+    paddingVertical: 9,
   },
 
   focusNextLabel: {
@@ -10620,7 +10576,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    minHeight: 34,
+    minHeight: 44,
   },
 
   focusNextCircle: {
@@ -10635,9 +10591,9 @@ const styles = StyleSheet.create({
 
   focusNextText: {
     flex: 1,
-    fontSize: 13,
-    lineHeight: 18,
-    fontWeight: '700',
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: '600',
   },
 
   focusOpenHint: {
@@ -10979,6 +10935,14 @@ const styles = StyleSheet.create({
     fontSize: 9.5,
     lineHeight: 13,
     fontWeight: '600',
+  },
+
+  libraryDeleteGoal: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   moreGoalsLink: {

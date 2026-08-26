@@ -28,7 +28,7 @@ requireCondition(home.includes('OTHER GOALS · {regular.length}'), 'Compact Othe
 requireCondition(source.includes('return regular.slice(0, 2)') && home.includes('homePreviewTasks.map'), 'Home does not cap secondary previews at two.');
 requireCondition(home.includes("setLibraryView('active')"), 'View all does not use the shared goal library presentation.');
 requireCondition(home.includes('<CompactGoalPreview') && source.includes('function CompactGoalPreview'), 'Compact goal previews are missing.');
-requireCondition(home.includes('homeMomentTask') && source.includes('function SundayMoment'), 'Data-backed adaptive Sunday moment is missing.');
+requireCondition(!home.includes('homeMomentTask') && !source.includes('function SundayMoment'), 'Home still renders an out-of-scope Sunday Moment.');
 requireCondition(!home.includes('Recently Deleted ·'), 'Home still links Recently Deleted.');
 requireCondition(home.includes('remainingSmallSteps'), 'Daily Momentum is not using remaining small steps.');
 requireCondition(focus.includes('const nextStep = task.microSteps.find'), 'Current Focus does not choose one incomplete step.');
@@ -39,8 +39,9 @@ requireCondition(focus.includes('relationshipLabel'), 'Current Focus does not ex
 requireCondition(!focus.includes('1 goal at a time'), 'Current Focus still renders redundant explanatory copy.');
 requireCondition(focus.includes('<Users') && focus.includes('<Heart'), 'Current Focus is missing mode-specific social icons beside relationship text.');
 requireCondition(focus.includes('allDone && task.microSteps.length > 0'), 'Goal completion is not gated behind completed steps.');
-requireCondition(focus.includes('{done} of {task.microSteps.length} steps'), 'Current Focus step progress is not explicit.');
+requireCondition(focus.includes('task.minutes') && focus.includes('duePresentation'), 'Current Focus metadata is incomplete.');
 requireCondition(source.includes('focusNextCircle') && source.includes('flexShrink: 0'), 'Current Focus completion circle can still shrink or clip.');
+requireCondition(source.includes('canDelete={canDeleteTask(task)}') && source.includes('requestDeleteGoal(task.id)'), 'View all does not preserve permission-aware goal deletion.');
 requireCondition(source.includes('connection.userId === otherUserId') && source.includes('connection.displayName'), 'Home relationship labels do not resolve from connection display names.');
 requireCondition(card.includes('relationshipLabel'), 'Legacy handoff cards no longer preserve relationship context.');
 
