@@ -1,4 +1,5 @@
 import {
+  ArrowRight,
   CalendarDays,
   Check,
   ChevronRight,
@@ -4483,12 +4484,11 @@ function CompactGoalPreview({
         pressed && styles.compactGoalPreviewPressed,
       ]}
     >
-      <View style={[styles.compactGoalIndicator, { backgroundColor: theme.accent }]} />
       <View style={styles.compactGoalCopy}>
         <Text numberOfLines={2} style={styles.compactGoalTitle}>{task.title}</Text>
         <View style={styles.compactGoalMeta}>
           <Text numberOfLines={1} style={styles.compactGoalProgress}>
-            {total > 0 ? `${done} of ${total} steps` : 'First steps are on the way'}
+            {theme.name} · {total > 0 ? `${done} of ${total} steps` : 'First steps are on the way'}
             {relationshipLabel ? ` · ${relationshipLabel}` : ''}
           </Text>
           {relationshipContext ? <HomeRelationshipBadge context={relationshipContext} /> : null}
@@ -4511,7 +4511,7 @@ function CompactGoalPreview({
           <Trash2 size={15} color="#A59DA8" />
         </Pressable>
       ) : null}
-      <ChevronRight size={15} color="#B0A9B7" />
+      <ArrowRight size={20} color={colors.coralPrimary} strokeWidth={2.2} />
     </Pressable>
   );
 }
@@ -4739,7 +4739,12 @@ function Focus({
             CURRENT FOCUS
           </Text>
         </View>
-
+        <View style={[styles.badge, { backgroundColor: c.surfaceSoft }]}>
+          <View style={[styles.badgeDot, { backgroundColor: c.accent }]} />
+          <Text numberOfLines={1} style={[styles.badgeText, { color: c.strong }]}>
+            {c.name} · {task.minutes} min
+          </Text>
+        </View>
       </View>
 
       <Animated.View
@@ -4752,12 +4757,7 @@ function Focus({
         }}
       >
         <Animated.View
-          style={[
-            styles.heroElevation,
-            {
-              backgroundColor: focusSurface,
-            },
-          ]}
+          style={styles.heroElevation}
         >
         <Animated.View
           style={[
@@ -4768,11 +4768,11 @@ function Focus({
             },
           ]}
         >
-        <View
+        <Animated.View
           pointerEvents="none"
           style={[
-            styles.heroDepth,
-            { backgroundColor: c.accent },
+            styles.heroAtmosphere,
+            { backgroundColor: focusSurface },
           ]}
         />
         <AnimatedReanimated.View style={pressStyle}>
@@ -4784,58 +4784,6 @@ function Focus({
             styles.hero,
           ]}
         >
-          <View
-            style={[
-              styles.heroGlow,
-              { backgroundColor: c.surfaceSoft },
-            ]}
-          />
-
-          <View style={styles.heroTop}>
-            <View
-              style={[
-                styles.badge,
-                {
-                  backgroundColor: c.surfaceSoft,
-                  borderColor: `${c.accent}38`,
-                },
-              ]}
-            >
-              <View
-                style={[
-                  styles.badgeDot,
-                  { backgroundColor: c.accent },
-                ]}
-              />
-
-              <Text
-                numberOfLines={1}
-                style={[styles.badgeText, { color: c.strong }]}
-              >
-                {c.name.toUpperCase()} ·{' '}
-                {task.minutes} MIN
-              </Text>
-            </View>
-
-            {duePresentation ? (
-              <View style={styles.heroDueMetadata}>
-                <CalendarDays
-                  size={11}
-                  color={c.strong}
-                />
-                <Text
-                  numberOfLines={1}
-                  style={[
-                    styles.heroDueMetadataText,
-                    { color: c.strong },
-                  ]}
-                >
-                  {duePresentation.label.toUpperCase()}
-                </Text>
-              </View>
-            ) : null}
-          </View>
-
           <Text style={[styles.heroTitle, { color: c.onSurface }]}> 
             {task.title}
           </Text>
@@ -4843,7 +4791,17 @@ function Focus({
             <Text style={[styles.focusProgress, { color: c.strong }]}>
               {done} of {task.microSteps.length} steps
             </Text>
-            {relationshipContext ? <HomeRelationshipBadge context={relationshipContext} /> : null}
+            {duePresentation ? (
+              <View style={styles.editorialDue}>
+                <CalendarDays size={12} color={c.strong} />
+                <Text style={[styles.editorialDueText, { color: c.strong }]}>
+                  {duePresentation.label}
+                </Text>
+              </View>
+            ) : null}
+            {!nextStep && relationshipContext ? (
+              <HomeRelationshipBadge context={relationshipContext} />
+            ) : null}
           </View>
 
           {nextStep ? (
@@ -4853,7 +4811,6 @@ function Focus({
               layout={LinearTransition.duration(reducedMotion ? motion.duration.reduced : motion.duration.move)}
               style={styles.focusNextStep}
             >
-              <Text style={[styles.focusNextLabel, { color: c.strong }]}>NEXT STEP</Text>
               <Pressable
                 accessibilityRole="checkbox"
                 accessibilityState={{ checked: acknowledgingStepId === nextStep.id }}
@@ -4873,30 +4830,34 @@ function Focus({
                 <View
                   style={[
                     styles.focusNextCircle,
-                    { borderColor: c.accent },
-                    acknowledgingStepId === nextStep.id && { backgroundColor: c.accent },
+                    acknowledgingStepId === nextStep.id && styles.focusNextCircleAcknowledging,
                   ]}
                 >
                   {acknowledgingStepId === nextStep.id && (
                     <Check size={12} color={colors.surface} strokeWidth={3} />
                   )}
                 </View>
-                <Text
-                  numberOfLines={3}
-                  style={[
-                    styles.focusNextText,
-                    { color: c.onSurface },
-                    acknowledgingStepId === nextStep.id && styles.heroStrike,
-                  ]}
-                >
-                  {nextStep.title}
-                </Text>
+                <View style={styles.focusNextCopy}>
+                  <Text style={styles.focusNextLabel}>NEXT STEP</Text>
+                  <Text
+                    style={[
+                      styles.focusNextText,
+                      acknowledgingStepId === nextStep.id && styles.heroStrike,
+                    ]}
+                  >
+                    {nextStep.title}
+                  </Text>
+                </View>
+                {relationshipContext ? <HomeRelationshipBadge context={relationshipContext} /> : null}
               </Pressable>
             </AnimatedReanimated.View>
           ) : task.microSteps.length === 0 ? (
-            <Text style={[styles.focusOpenHint, { color: c.strong }]}>
-              {findingSteps ? 'Finding a good first step…' : 'Open goal'}
-            </Text>
+            <View style={styles.focusNoStepRow}>
+              <Text style={[styles.focusOpenHint, { color: c.strong }]}>
+                {findingSteps ? 'Finding a good first step…' : 'Open goal'}
+              </Text>
+              {relationshipContext ? <HomeRelationshipBadge context={relationshipContext} /> : null}
+            </View>
           ) : null}
 
           {allDone && task.microSteps.length > 0 && (
@@ -10346,7 +10307,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 520,
     alignSelf: 'center',
-    paddingHorizontal: 17,
+    paddingHorizontal: 24,
     paddingTop: 13,
   },
 
@@ -10358,7 +10319,7 @@ const styles = StyleSheet.create({
   },
 
   header: {
-    marginBottom: 18,
+    marginBottom: 34,
   },
 
   dailyHeader: {
@@ -10460,7 +10421,7 @@ const styles = StyleSheet.create({
   },
 
   focus: {
-    marginBottom: 18,
+    marginBottom: 36,
   },
 
   focusHead: {
@@ -10469,7 +10430,7 @@ const styles = StyleSheet.create({
       'space-between',
     alignItems: 'center',
     paddingHorizontal: 2,
-    marginBottom: 8,
+    marginBottom: 16,
   },
 
   focusHeadLeft: {
@@ -10487,8 +10448,8 @@ const styles = StyleSheet.create({
   },
 
   focusLabel: {
-    color: '#A84E38',
-    fontSize: 9,
+    color: '#6B5550',
+    fontSize: 10,
     fontWeight: '900',
     letterSpacing: 1.45,
   },
@@ -10500,28 +10461,25 @@ const styles = StyleSheet.create({
   },
 
   hero: {
-    overflow: 'hidden',
-    borderRadius: 23,
-    padding: 12,
+    padding: 0,
   },
 
   heroElevation: {
-    borderRadius: 23,
-    shadowColor: colors.warmShadow,
-    shadowOpacity: 0.045,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 7 },
-    elevation: 1,
+    position: 'relative',
   },
 
   heroMotionSurface: {
-    borderRadius: 23,
+    position: 'relative',
   },
 
-  heroDepth: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 23,
-    opacity: 0.08,
+  heroAtmosphere: {
+    position: 'absolute',
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    right: -110,
+    top: -90,
+    opacity: 0.1,
   },
 
   heroPressed: {
@@ -10533,36 +10491,23 @@ const styles = StyleSheet.create({
     ],
   },
 
-  heroGlow: {
-    position: 'absolute',
-    width: 190,
-    height: 190,
-    borderRadius: 95,
-    opacity: 0.12,
-    right: -60,
-    top: -75,
-    backgroundColor: colors.surfaceWarm,
-  },
-
   heroTop: {
     flexDirection: 'row',
     justifyContent:
       'space-between',
     alignItems: 'center',
-    marginBottom: 7,
+    marginBottom: 14,
   },
 
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surfaceWarm,
+    borderWidth: 0,
     borderRadius: 12,
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
     paddingVertical: 4,
-    maxWidth: '58%',
+    maxWidth: '62%',
   },
 
   badgeDot: {
@@ -10615,67 +10560,96 @@ const styles = StyleSheet.create({
   },
 
   heroTitle: {
-    color: '#8A3827',
-    fontSize: 17,
-    lineHeight: 22,
+    color: '#2D2926',
+    fontSize: 34,
+    lineHeight: 40,
     fontWeight: '900',
-    letterSpacing: -0.3,
-    marginBottom: 6,
+    letterSpacing: -1.05,
+    marginBottom: 18,
   },
 
   focusContextRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 8,
-    marginBottom: 7,
+    marginBottom: 18,
   },
 
   focusProgress: {
     flexShrink: 1,
-    fontSize: 9.5,
-    lineHeight: 13,
+    fontSize: 11,
+    lineHeight: 16,
     fontWeight: '700',
   },
 
   focusNextStep: {
-    borderWidth: 1,
-    borderColor: '#EBC7BA',
-    backgroundColor: colors.surfaceWarm,
-    borderRadius: 15,
-    paddingHorizontal: 11,
-    paddingVertical: 7,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: '#EEE4DF',
+    paddingVertical: 18,
   },
 
   focusNextLabel: {
-    fontSize: 8,
+    color: '#6B5550',
+    fontSize: 9,
     fontWeight: '900',
     letterSpacing: 0.8,
-    marginBottom: 3,
+    marginBottom: 4,
   },
 
   focusNextAction: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    minHeight: 44,
+    alignItems: 'flex-start',
+    gap: 14,
+    minHeight: 48,
   },
 
   focusNextCircle: {
-    width: 21,
-    height: 21,
-    borderRadius: 11,
-    borderWidth: 1.5,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: colors.coralPrimary,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
   },
 
   focusNextText: {
+    color: '#2D2926',
+    fontSize: 16,
+    lineHeight: 22,
+    fontWeight: '500',
+  },
+
+  focusNextCopy: {
     flex: 1,
-    fontSize: 11,
+    minWidth: 0,
+  },
+
+  focusNextCircleAcknowledging: {
+    backgroundColor: colors.coralPrimary,
+  },
+
+  editorialDue: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+
+  editorialDueText: {
+    fontSize: 10.5,
     lineHeight: 15,
-    fontWeight: '600',
+    fontWeight: '700',
+  },
+
+  focusNoStepRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
   },
 
   focusOpenHint: {
@@ -10937,21 +10911,19 @@ const styles = StyleSheet.create({
   },
 
   otherGoalsSection: {
-    marginTop: 1,
-    marginBottom: 8,
+    marginBottom: 12,
   },
 
   otherGoalsHeader: {
-    minHeight: 36,
-    paddingHorizontal: 2,
+    minHeight: 40,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
 
   otherGoalsTitle: {
-    color: '#5E5964',
-    fontSize: 9.5,
+    color: '#6B5550',
+    fontSize: 10,
     fontWeight: '900',
     letterSpacing: 0.9,
   },
@@ -10964,25 +10936,23 @@ const styles = StyleSheet.create({
   },
 
   otherGoalsViewAllText: {
-    color: '#81758D',
-    fontSize: 10,
+    color: colors.coralStrong,
+    fontSize: 11,
     fontWeight: '800',
   },
 
   otherGoalPreviews: {
     borderTopWidth: 1,
-    borderTopColor: '#ECE8EE',
+    borderTopColor: '#EEE4DF',
   },
 
   compactGoalPreview: {
-    minHeight: 64,
-    paddingVertical: 11,
-    paddingHorizontal: 2,
+    paddingVertical: 18,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 11,
+    gap: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#ECE8EE',
+    borderBottomColor: '#EEE4DF',
   },
 
   compactGoalPreviewPressed: {
@@ -10993,29 +10963,23 @@ const styles = StyleSheet.create({
     opacity: 0,
   },
 
-  compactGoalIndicator: {
-    width: 7,
-    height: 31,
-    borderRadius: 5,
-  },
-
   compactGoalCopy: {
     flex: 1,
     minWidth: 0,
   },
 
   compactGoalTitle: {
-    color: '#302D33',
-    fontSize: 12.5,
-    lineHeight: 17,
-    fontWeight: '800',
+    color: '#2D2926',
+    fontSize: 20,
+    lineHeight: 27,
+    fontWeight: '900',
   },
 
   compactGoalProgress: {
-    color: '#908A94',
-    fontSize: 9.5,
-    lineHeight: 13,
-    fontWeight: '600',
+    color: '#765F59',
+    fontSize: 11,
+    lineHeight: 16,
+    fontWeight: '500',
     flexShrink: 1,
   },
 
