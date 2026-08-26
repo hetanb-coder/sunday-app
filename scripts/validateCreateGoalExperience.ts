@@ -40,7 +40,8 @@ requireCondition(modal.includes('y: insets.top + 18') && modal.includes('width: 
 requireCondition(source.includes('outputRange: [1, 0.985]') && source.includes('outputRange: [0, -3]'), 'Approved Home 0.985 scale/-3px depth is missing.');
 requireCondition(modal.includes('inputRange: [0, 0.1, 0.22, 0.34, 0.46, 0.58, 1]') && modal.includes('outputRange: [0, 0, 0.0219, 0.07, 0.1181, 0.14, 0.14]'), 'Approved restrained 0.14 backdrop choreography is missing.');
 requireCondition(modal.includes('inputRange: [0, 0.72, 0.9, 1]') && modal.includes('inputRange: [0, 0.76, 0.94, 1]') && modal.includes('inputRange: [0, 0.8, 0.98, 1]'), 'Approved header/input/control reveal thresholds are missing.');
-requireCondition(source.includes("backgroundColor: colors.surface") && source.includes('shadowOpacity: 0.12') && source.includes('shadowRadius: 24'), 'The real cream Focus Rise surface is not the visible production shell.');
+requireCondition(source.includes("backgroundColor: '#F8F3EA'") && source.includes('shadowOpacity: 0.06') && source.includes('shadowRadius: 18'), 'The locked warm-cream Focus Rise surface is not the visible production shell.');
+requireCondition(modal.includes('e.g. Run 5K without stopping') && modal.includes('Sunday creates your first small steps automatically.') && modal.includes('styles.newGoalSettingsGroup'), 'Locked New Goal V1 copy or grouped settings surface is missing.');
 
 requireCondition(!source.includes("import { NewGoalMorphCanvas }") && !modal.includes('<NewGoalMorphCanvas') && !modal.includes('skiaMorphProgress') && !modal.includes('skiaCloseProgress') && !modal.includes('newGoalSkiaPlus') && !modal.includes('D3 DEBUG'), 'Obsolete D3/D4 production visuals still mount or execute.');
 requireCondition(source.includes('{__DEV__ && <NewGoalMotionLab />}'), 'Motion Lab is no longer dev-only.');

@@ -1,4 +1,5 @@
 import {
+  Briefcase,
   CalendarDays,
   Check,
   ChevronRight,
@@ -7,12 +8,15 @@ import {
   Gem,
   Heart,
   House,
+  Leaf,
   Layers3,
   Plus,
   Sparkles,
+  Sprout,
   Trash2,
   User,
   Users,
+  WalletCards,
   X,
   Zap
 } from 'lucide-react-native';
@@ -1336,11 +1340,13 @@ function DueRow({
   dueHasTime,
   onPress,
   compact = false,
+  grouped = false,
 }: {
   dueAt?: string;
   dueHasTime: boolean;
   onPress: () => void;
   compact?: boolean;
+  grouped?: boolean;
 }) {
   const presentation = formatDue(dueAt, dueHasTime, false);
   return (
@@ -1355,19 +1361,20 @@ function DueRow({
       style={({ pressed }) => [
         styles.dueRow,
         compact && styles.dueRowCompact,
+        grouped && styles.newGoalSettingRow,
         pressed && styles.pressed,
       ]}
     >
-      <View style={styles.dueRowIcon}>
-        <CalendarDays size={16} color="#71717A" />
+      <View style={[styles.dueRowIcon, grouped && styles.newGoalSettingIcon]}>
+        <CalendarDays size={16} color={grouped ? '#92736A' : '#71717A'} />
       </View>
-      <View style={styles.dueRowCopy}>
-        <Text style={styles.dueRowLabel}>Due</Text>
-        <Text style={styles.dueRowValue}>
+      <View style={[styles.dueRowCopy, grouped && styles.newGoalSettingCopy]}>
+        <Text style={[styles.dueRowLabel, grouped && styles.newGoalSettingLabel]}>Due</Text>
+        <Text style={[styles.dueRowValue, grouped && styles.newGoalSettingValue]} numberOfLines={1}>
           {presentation?.label ?? 'No due date'}
         </Text>
       </View>
-      <ChevronRight size={16} color="#A1A1AA" />
+      <ChevronRight size={16} color={grouped ? '#987A71' : '#A1A1AA'} />
     </Pressable>
   );
 }
@@ -1388,10 +1395,12 @@ function TogetherRow({
   mode,
   connection,
   onPress,
+  grouped = false,
 }: {
   mode: GoalCollaborationMode;
   connection?: Connection;
   onPress: () => void;
+  grouped?: boolean;
 }) {
   return (
     <Pressable
@@ -1400,19 +1409,21 @@ function TogetherRow({
         styles.dueRow,
         styles.dueRowCompact,
         styles.togetherRowCompact,
+        grouped && styles.newGoalSettingRow,
+        grouped && styles.newGoalSettingRowLast,
         pressed && styles.pressed,
       ]}
     >
-      <View style={styles.dueRowIcon}>
-        <Users size={16} color="#71717A" />
+      <View style={[styles.dueRowIcon, grouped && styles.newGoalSettingIcon]}>
+        <Users size={16} color={grouped ? '#92736A' : '#71717A'} />
       </View>
-      <View style={styles.dueRowCopy}>
-        <Text style={styles.dueRowLabel}>Doing this</Text>
-        <Text style={styles.dueRowValue} numberOfLines={1}>
+      <View style={[styles.dueRowCopy, grouped && styles.newGoalSettingCopy]}>
+        <Text style={[styles.dueRowLabel, grouped && styles.newGoalSettingLabel]}>Doing This</Text>
+        <Text style={[styles.dueRowValue, grouped && styles.newGoalSettingValue]} numberOfLines={1}>
           {collaborationLabel(mode, connection)}
         </Text>
       </View>
-      <ChevronRight size={16} color="#A1A1AA" />
+      <ChevronRight size={16} color={grouped ? '#987A71' : '#A1A1AA'} />
     </Pressable>
   );
 }
@@ -8995,39 +9006,32 @@ Animated.timing(
               }}
             >
               <View
-                style={styles.grabber}
+                style={[styles.grabber, styles.newGoalGrabber]}
               />
             </View>
 
             {/* HEADER */}
 
             <View
-              style={styles.sheetHead}
+              style={styles.newGoalSheetHead}
             >
-              <View>
-                <Text
-                  style={
-                    styles.sheetTitle
-                  }
-                >
-                  New Goal
-                </Text>
-              </View>
+              <Text style={styles.newGoalSheetTitle}>New Goal</Text>
 
               <Pressable
                 disabled={transitionState !== 'open'}
                 onPress={() => dismiss('x')}
+                hitSlop={6}
                 style={({
                   pressed,
                 }) => [
-                  styles.close,
+                  styles.newGoalClose,
                   pressed &&
                     styles.pressed,
                 ]}
               >
                 <X
-                  size={18}
-                  color="#52525B"
+                  size={19}
+                  color="#675751"
                 />
               </Pressable>
             </View>
@@ -9088,18 +9092,21 @@ Animated.timing(
               <Text
                 style={styles.label}
               >
-                What do you want to move
-                forward?
+                WHAT DO YOU WANT TO MOVE FORWARD?
               </Text>
 
               <TextInput
                 value={title}
                 onChangeText={setTitle}
 
-                placeholder="e.g. Finish homepage copy"
-                placeholderTextColor="#A1A1AA"
+                placeholder="e.g. Run 5K without stopping"
+                placeholderTextColor="#9A918C"
 
                 style={styles.input}
+
+                multiline
+                blurOnSubmit
+                textAlignVertical="top"
 
                 returnKeyType="done"
 
@@ -9118,7 +9125,7 @@ Animated.timing(
               <Text
                 style={styles.label}
               >
-                Category
+                CATEGORY
               </Text>
 
               <View
@@ -9131,6 +9138,13 @@ Animated.timing(
                 ).filter((item) => item !== 'quick').map((item) => {
                   const active =
                     category === item;
+                  const CategoryIcon =
+                    item === 'work' ? Briefcase
+                      : item === 'life' ? Heart
+                        : item === 'health' ? Leaf
+                          : item === 'money' ? WalletCards
+                            : Sprout;
+                  const categoryVisual = categoryColors[item];
                     
                   return (
                     <Pressable
@@ -9145,42 +9159,32 @@ Animated.timing(
                         {
                           backgroundColor:
                             active
-                              ? COLORS[
-                                  item
-                                ].surface
-                              : '#F7F7F8',
+                              ? categoryVisual.accent
+                              : categoryVisual.surfaceSoft,
 
                           borderColor:
                             active
-                              ? `${COLORS[item].accent}55`
-                              : '#E4E4E7',
+                              ? categoryVisual.accent
+                              : categoryVisual.surface,
                         },
                       ]}
                     >
-                      <View
-                        style={[
-                          styles.chipDot,
-                          {
-                            backgroundColor:
-                              COLORS[
-                                item
-                              ].accent,
-                          },
-                        ]}
+                      <CategoryIcon
+                        size={15}
+                        strokeWidth={2.15}
+                        color={active ? '#FFFFFF' : categoryVisual.accent}
                       />
 
                       <Text
                         style={{
-                          fontSize: 10,
+                          fontSize: 12,
                           fontWeight:
                             '800',
 
                           color:
                             active
-                              ? COLORS[
-                                  item
-                                ].strong
-                              : '#71717A',
+                              ? '#FFFFFF'
+                              : categoryVisual.onSurface,
                         }}
                       >
                         {
@@ -9194,26 +9198,30 @@ Animated.timing(
                 })}
               </View>
 
-              <DueRow
-                dueAt={dueAt}
-                dueHasTime={dueHasTime}
-                compact
-                onPress={() => {
-                  Keyboard.dismiss();
-                  setDuePickerOpen(true);
-                }}
-              />
+              <View style={styles.newGoalSettingsGroup}>
+                <DueRow
+                  dueAt={dueAt}
+                  dueHasTime={dueHasTime}
+                  compact
+                  grouped
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    setDuePickerOpen(true);
+                  }}
+                />
 
-              <TogetherRow
-                mode={collaborationMode}
-                connection={connections.find(
-                  (connection) => connection.userId === collaborationPersonId
-                )}
-                onPress={() => {
-                  Keyboard.dismiss();
-                  setTogetherPickerOpen(true);
-                }}
-              />
+                <TogetherRow
+                  mode={collaborationMode}
+                  connection={connections.find(
+                    (connection) => connection.userId === collaborationPersonId
+                  )}
+                  grouped
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    setTogetherPickerOpen(true);
+                  }}
+                />
+              </View>
 
               <Pressable
                 disabled={
@@ -9227,20 +9235,27 @@ Animated.timing(
                   styles.create,
 
                   (!title.trim() || submitting) &&
-  styles.disabled,
+  styles.newGoalDisabled,
 
                   pressed &&
                     styles.pressed,
                 ]}
               >
                 <Text
-                  style={
-                    styles.createText
-                  }
+                  style={[
+                    styles.createText,
+                    (!title.trim() || submitting) && styles.createTextDisabled,
+                  ]}
                 >
                   Create Goal
                 </Text>
               </Pressable>
+              <View style={styles.newGoalHelper}>
+                <Sparkles size={13} color={colors.coralStrong} strokeWidth={2.4} />
+                <Text style={styles.newGoalHelperText}>
+                  Sunday creates your first small steps automatically.
+                </Text>
+              </View>
               </Animated.View>
               </ScrollView>
               </Animated.View>
@@ -10184,16 +10199,16 @@ const styles = StyleSheet.create({
   newGoalAdaptiveCard: {
     width: '100%',
 
-    backgroundColor: colors.surface,
+    backgroundColor: '#F8F3EA',
   
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
+    borderTopLeftRadius: 34,
+    borderTopRightRadius: 34,
   
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
   
-    paddingHorizontal: 19,
-    paddingTop: 9,
+    paddingHorizontal: 25,
+    paddingTop: 8,
   
     paddingBottom:
       Platform.OS === 'ios'
@@ -10209,9 +10224,9 @@ const styles = StyleSheet.create({
       height: -4,
     },
   
-    shadowOpacity: 0.12,
-    shadowRadius: 24,
-    elevation: 12,
+    shadowOpacity: 0.06,
+    shadowRadius: 18,
+    elevation: 5,
   },
   submitGoalPreview: {
     position: 'absolute',
@@ -10298,7 +10313,7 @@ const styles = StyleSheet.create({
   },
   
   newGoalScrollContent: {
-    paddingBottom: 16,
+    paddingBottom: 18,
   },
   scroll: {
     paddingBottom: 12,
@@ -11338,6 +11353,59 @@ const styles = StyleSheet.create({
     marginTop: 0,
   },
 
+  newGoalSettingsGroup: {
+    marginTop: 18,
+    marginBottom: 27,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: '#EAE1D8',
+    backgroundColor: '#FFFDFC',
+    overflow: 'hidden',
+  },
+
+  newGoalSettingRow: {
+    minHeight: 56,
+    marginTop: 0,
+    marginBottom: 0,
+    paddingHorizontal: 15,
+    borderWidth: 0,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#E8DED5',
+    borderRadius: 0,
+    backgroundColor: 'transparent',
+  },
+
+  newGoalSettingRowLast: {
+    borderBottomWidth: 0,
+  },
+
+  newGoalSettingIcon: {
+    backgroundColor: '#F6EFEA',
+  },
+
+  newGoalSettingCopy: {
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+
+  newGoalSettingLabel: {
+    color: '#3C3532',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+
+  newGoalSettingValue: {
+    flexShrink: 1,
+    color: '#8B716A',
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 0,
+    textAlign: 'right',
+  },
+
   dueRowIcon: {
     width: 32,
     height: 32,
@@ -12256,6 +12324,11 @@ const styles = StyleSheet.create({
     marginBottom: 17,
   },
 
+  newGoalGrabber: {
+    backgroundColor: '#E5D7D0',
+    marginBottom: 10,
+  },
+
   detailGrabber: {
     marginBottom: 0,
   },
@@ -12266,6 +12339,34 @@ const styles = StyleSheet.create({
       'space-between',
     alignItems: 'flex-start',
     marginBottom: 12,
+  },
+
+  newGoalSheetHead: {
+    minHeight: 42,
+    marginBottom: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  newGoalSheetTitle: {
+    color: '#2C2826',
+    fontSize: 29,
+    lineHeight: 36,
+    fontWeight: '900',
+    letterSpacing: -0.9,
+    textAlign: 'center',
+  },
+
+  newGoalClose: {
+    position: 'absolute',
+    right: 0,
+    top: 3,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F2ECE4',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   sheetKicker: {
@@ -12596,41 +12697,47 @@ const styles = StyleSheet.create({
   },
 
   label: {
-    color: '#52525B',
-    fontSize: 10,
+    color: '#6D514A',
+    fontSize: 11,
+    lineHeight: 15,
     fontWeight: '800',
-    marginBottom: 8,
+    letterSpacing: 0.25,
+    marginBottom: 9,
     marginTop: 2,
   },
 
   input: {
-    height: 51,
+    minHeight: 126,
     borderWidth: 1,
-    borderColor: '#E4E4E7',
-    borderRadius: 16,
-    backgroundColor: '#FAFAFA',
-    paddingHorizontal: 14,
-    color: '#18181B',
-    fontSize: 14,
+    borderColor: '#E9E0D7',
+    borderRadius: 22,
+    backgroundColor: '#FFFDFC',
+    paddingHorizontal: 16,
+    paddingTop: 17,
+    paddingBottom: 17,
+    color: '#2E2A28',
+    fontSize: 16,
+    lineHeight: 22,
     fontWeight: '600',
-    marginBottom: 16,
+    marginBottom: 28,
   },
 
   chips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 7,
-    marginBottom: 19,
+    gap: 8,
+    marginBottom: 0,
   },
 
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    minHeight: 44,
+    gap: 7,
     borderWidth: 1,
-    borderRadius: 13,
-    paddingHorizontal: 9,
-    paddingVertical: 7,
+    borderRadius: 12,
+    paddingHorizontal: 13,
+    paddingVertical: 8,
   },
 
   chipDot: {
@@ -12640,28 +12747,55 @@ const styles = StyleSheet.create({
   },
 
   create: {
-    height: 50,
-    borderRadius: 17,
+    minHeight: 53,
+    borderRadius: 27,
     backgroundColor: colors.coralStrong,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 7,
     shadowColor: colors.coralPrimary,
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    elevation: 4,
+    shadowOpacity: 0.14,
+    shadowRadius: 8,
+    elevation: 3,
   },
 
   createText: {
     color: '#fff',
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '900',
   },
 
   disabled: {
     backgroundColor: '#D4D4D8',
     shadowOpacity: 0,
+  },
+
+  newGoalDisabled: {
+    backgroundColor: '#E5DDD4',
+    shadowOpacity: 0,
+  },
+
+  createTextDisabled: {
+    color: '#A69B93',
+  },
+
+  newGoalHelper: {
+    minHeight: 44,
+    paddingTop: 15,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    gap: 7,
+  },
+
+  newGoalHelperText: {
+    flexShrink: 1,
+    color: '#86766F',
+    fontSize: 10.5,
+    lineHeight: 15,
+    fontWeight: '600',
+    textAlign: 'center',
   },
 
   placeholder: {
