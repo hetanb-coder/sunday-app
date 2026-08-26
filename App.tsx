@@ -1517,7 +1517,7 @@ function NewGoalDueDatePickerSheet({
   const canGoToPreviousMonth =
     visibleMonth.getFullYear() > today.getFullYear() ||
     visibleMonth.getMonth() > today.getMonth();
-  const monthLabel = visibleMonth.toLocaleDateString(undefined, {
+  const monthLabel = (incomingMonth ?? visibleMonth).toLocaleDateString(undefined, {
     month: 'long',
     year: 'numeric',
   });
