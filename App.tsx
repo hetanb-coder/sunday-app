@@ -1,12 +1,17 @@
 import {
+  Ban,
   Briefcase,
+  CalendarCheck2,
+  CalendarClock,
   CalendarDays,
+  CalendarRange,
   Check,
   ChevronRight,
   Clock3,
   Flame,
   Gem,
   Heart,
+  HeartHandshake,
   House,
   Leaf,
   Layers3,
@@ -990,12 +995,45 @@ function CategoryGroupShell({
   );
 }
 
-function DueQuickChoice({
+function LegacyDueQuickChoice({
   label,
   selected,
 }: {
   label: string;
   selected: boolean;
+}) {
+  const selection = useSharedValue(selected ? 1 : 0);
+
+  useEffect(() => {
+    selection.value = withTiming(selected ? 1 : 0, { duration: 170 });
+  }, [selected, selection]);
+
+  const selectionStyle = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(selection.value, [0, 1], ['#F4F4F5', '#FFF1ED']),
+    borderColor: interpolateColor(selection.value, [0, 1], ['rgba(255,182,165,0)', '#FFB6A5']),
+    transform: [{ scale: 1 - selection.value * 0.012 }],
+  }));
+  const textStyle = useAnimatedStyle(() => ({
+    color: interpolateColor(selection.value, [0, 1], ['#71717A', '#C65D47']),
+  }));
+
+  return (
+    <AnimatedReanimated.View style={[styles.legacyDueQuickChip, selectionStyle]}>
+      <AnimatedReanimated.Text style={[styles.legacyDueQuickChipText, textStyle]}>
+        {label}
+      </AnimatedReanimated.Text>
+    </AnimatedReanimated.View>
+  );
+}
+
+function DueQuickChoice({
+  label,
+  selected,
+  icon,
+}: {
+  label: string;
+  selected: boolean;
+  icon?: React.ReactNode;
 }) {
   const selection = useSharedValue(selected ? 1 : 0);
 
@@ -1009,12 +1047,12 @@ function DueQuickChoice({
     backgroundColor: interpolateColor(
       selection.value,
       [0, 1],
-      ['#F4F4F5', '#FFF1ED']
+      ['#FFFCFA', '#FFF1ED']
     ),
     borderColor: interpolateColor(
       selection.value,
       [0, 1],
-      ['rgba(255,182,165,0)', '#FFB6A5']
+      ['#E5C9C1', '#FF7D6C']
     ),
     transform: [{ scale: 1 - selection.value * 0.012 }],
   }));
@@ -1031,6 +1069,7 @@ function DueQuickChoice({
     <AnimatedReanimated.View
       style={[styles.dueQuickChip, selectionStyle]}
     >
+      {icon}
       <AnimatedReanimated.Text
         style={[styles.dueQuickChipText, textStyle]}
       >
@@ -1158,17 +1197,17 @@ function DueDatePickerSheet({
         <AnimatedReanimated.View
           layout={LinearTransition.duration(260)}
           style={[
-            styles.duePickerSheet,
+            styles.legacyDuePickerSheet,
             { paddingBottom: Math.max(22, insets.bottom + 14) },
           ]}
         >
           <View style={styles.dragHandleArea}>
             <View style={styles.grabber} />
           </View>
-          <View style={styles.duePickerHeader}>
+          <View style={styles.legacyDuePickerHeader}>
             <View>
               <Text style={styles.duePickerKicker}>SCHEDULE</Text>
-              <Text style={styles.duePickerTitle}>
+              <Text style={styles.legacyDuePickerTitle}>
                 {pickerMode === 'calendar'
                   ? 'Pick a date'
                   : pickerMode === 'time'
@@ -1194,7 +1233,7 @@ function DueDatePickerSheet({
           {pickerMode === 'quick' && (
           <AnimatedReanimated.View
             entering={FadeInDown.duration(190)}
-            style={styles.dueQuickChoices}
+            style={styles.legacyDueQuickChoices}
           >
             {quickChoices.map((choice) => {
               const selected = sameLocalDay(selectedDate, choice.date);
@@ -1209,11 +1248,11 @@ function DueDatePickerSheet({
                     selectQuickDate(choice.date);
                   }}
                   style={({ pressed }) => [
-                    styles.dueQuickChipPressable,
+                    styles.legacyDueQuickChipPressable,
                     pressed && styles.dueQuickChipPressed,
                   ]}
                 >
-                  <DueQuickChoice
+                  <LegacyDueQuickChoice
                     label={choice.label}
                     selected={selected && hasDueDate}
                   />
@@ -1224,13 +1263,13 @@ function DueDatePickerSheet({
               accessibilityRole="button"
               onPress={() => setPickerMode('calendar')}
               style={({ pressed }) => [
-                styles.dueQuickChip,
+                styles.legacyDueQuickChip,
                 styles.dueQuickChipCustom,
                 pressed && styles.dueQuickChipPressed,
               ]}
             >
               <CalendarDays size={14} color="#52525B" />
-              <Text style={styles.dueQuickChipText}>Pick a date</Text>
+              <Text style={styles.legacyDueQuickChipText}>Pick a date</Text>
             </Pressable>
           </AnimatedReanimated.View>
           )}
@@ -1328,6 +1367,380 @@ function DueDatePickerSheet({
               <Text style={styles.dueRemoveDateText}>Remove due date</Text>
             </Pressable>
           )}
+        </AnimatedReanimated.View>
+        </Animated.View>
+      </View>
+    </Modal>
+  );
+}
+
+
+function NewGoalDueDatePickerSheet({
+  visible,
+  dueAt,
+  dueHasTime,
+  onChange,
+  onClose,
+}: {
+  visible: boolean;
+  dueAt?: string;
+  dueHasTime: boolean;
+  onChange: (dueAt?: string, dueHasTime?: boolean) => void;
+  onClose: () => void;
+}) {
+  const insets = useSafeAreaInsets();
+  const initialDate = dueAt ? new Date(dueAt) : addLocalDays(new Date(), 1);
+  const [selectedDate, setSelectedDate] = useState(initialDate);
+  const [hasTime, setHasTime] = useState(dueHasTime);
+  const [hasDueDate, setHasDueDate] = useState(Boolean(dueAt));
+  const [pickerMode, setPickerMode] = useState<'quick' | 'calendar' | 'time'>('quick');
+  const [visibleMonth, setVisibleMonth] = useState(
+    new Date(initialDate.getFullYear(), initialDate.getMonth(), 1)
+  );
+  const sheetY = useRef(new Animated.Value(28)).current;
+  const closingRef = useRef(false);
+
+  useEffect(() => {
+    if (!visible) return;
+    const nextDate = dueAt
+      ? new Date(dueAt)
+      : addLocalDays(new Date(), 1);
+    setSelectedDate(nextDate);
+    setHasTime(dueHasTime);
+    setHasDueDate(Boolean(dueAt));
+    setPickerMode('quick');
+    setVisibleMonth(new Date(nextDate.getFullYear(), nextDate.getMonth(), 1));
+    closingRef.current = false;
+    sheetY.setValue(28);
+    Animated.timing(sheetY, {
+      toValue: 0,
+      duration: 220,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [visible]);
+
+  if (!visible) return null;
+
+  const closeSurface = () => {
+    if (closingRef.current) return;
+    closingRef.current = true;
+    Animated.timing(sheetY, {
+      toValue: 28,
+      duration: 170,
+      easing: Easing.in(Easing.cubic),
+      useNativeDriver: true,
+    }).start(({ finished }) => {
+      if (finished) onClose();
+      closingRef.current = false;
+    });
+  };
+
+  const updateDraft = (date: Date, nextHasTime: boolean) => {
+    setSelectedDate(date);
+    setHasTime(nextHasTime);
+    setHasDueDate(true);
+  };
+  const selectQuickDate = (date: Date) => {
+    updateDraft(date, false);
+    setVisibleMonth(new Date(date.getFullYear(), date.getMonth(), 1));
+  };
+  const quickChoices = [
+    { label: 'Today', date: addLocalDays(new Date(), 0) },
+    { label: 'Tomorrow', date: addLocalDays(new Date(), 1) },
+    {
+      label: 'This Weekend',
+      date: addLocalDays(
+        new Date(),
+        (6 - new Date().getDay() + 7) % 7
+      ),
+    },
+  ];
+  const today = new Date();
+  const firstCalendarDate = addLocalDays(visibleMonth, -visibleMonth.getDay());
+  const calendarDates = Array.from({ length: 42 }, (_, index) =>
+    addLocalDays(firstCalendarDate, index)
+  );
+  const canGoToPreviousMonth =
+    visibleMonth.getFullYear() > today.getFullYear() ||
+    visibleMonth.getMonth() > today.getMonth();
+  const monthLabel = visibleMonth.toLocaleDateString(undefined, {
+    month: 'long',
+    year: 'numeric',
+  });
+  const selectedSummary = formatDue(
+    hasDueDate
+      ? normalizeDueDate(selectedDate, hasTime)
+      : undefined,
+    hasTime,
+    false
+  );
+  const handleDone = () => {
+    onChange(
+      hasDueDate
+        ? normalizeDueDate(selectedDate, hasTime)
+        : undefined,
+      hasDueDate ? hasTime : false
+    );
+    closeSurface();
+  };
+
+  return (
+    <Modal
+      transparent
+      visible
+      animationType="none"
+      statusBarTranslucent
+      onRequestClose={closeSurface}
+    >
+      <View style={styles.duePickerRoot}>
+        <Pressable
+          accessibilityLabel="Close due date picker"
+          style={styles.duePickerBackdrop}
+          onPress={closeSurface}
+        />
+        <Animated.View
+          style={[
+            styles.duePickerMotionShell,
+            { transform: [{ translateY: sheetY }] },
+          ]}
+        >
+        <AnimatedReanimated.View
+          layout={LinearTransition.duration(260)}
+          style={[
+            styles.duePickerSheet,
+            { paddingBottom: Math.max(22, insets.bottom + 14) },
+          ]}
+        >
+          <View style={styles.dragHandleArea}>
+            <View style={[styles.grabber, styles.secondarySheetGrabber]} />
+          </View>
+          <View style={styles.duePickerHeader}>
+            <Text style={styles.duePickerTitle}>Due Date</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Close due date picker"
+              onPress={closeSurface}
+              hitSlop={6}
+              style={({ pressed }) => [
+                styles.secondarySheetClose,
+                pressed && styles.pressed,
+              ]}
+            >
+              <X size={22} color="#5F4D47" />
+            </Pressable>
+          </View>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            bounces={false}
+            contentContainerStyle={styles.duePickerContent}
+          >
+
+          {pickerMode !== 'time' && (
+          <AnimatedReanimated.View
+            entering={FadeInDown.duration(190)}
+            style={styles.dueQuickChoices}
+          >
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ selected: !hasDueDate }}
+              onPress={() => {
+                setHasDueDate(false);
+                setHasTime(false);
+              }}
+              style={({ pressed }) => [
+                styles.dueQuickChipPressable,
+                pressed && styles.dueQuickChipPressed,
+              ]}
+            >
+              <DueQuickChoice
+                label="No due date"
+                selected={!hasDueDate}
+                icon={<Ban size={20} color={!hasDueDate ? '#FF7D6C' : '#927D76'} />}
+              />
+            </Pressable>
+            {quickChoices.map((choice) => {
+              const selected = hasDueDate && sameLocalDay(selectedDate, choice.date);
+              const ChoiceIcon = choice.label === 'Today'
+                ? CalendarCheck2
+                : choice.label === 'Tomorrow'
+                  ? CalendarClock
+                  : CalendarRange;
+              return (
+                <Pressable
+                  key={choice.label}
+                  accessibilityRole="button"
+                  accessibilityState={{
+                    selected: selected && hasDueDate,
+                  }}
+                  onPress={() => {
+                    selectQuickDate(choice.date);
+                  }}
+                  style={({ pressed }) => [
+                    styles.dueQuickChipPressable,
+                    pressed && styles.dueQuickChipPressed,
+                  ]}
+                >
+                  <DueQuickChoice
+                    label={choice.label}
+                    selected={selected}
+                    icon={
+                      <ChoiceIcon
+                        size={20}
+                        color={selected ? '#FF7D6C' : '#927D76'}
+                      />
+                    }
+                  />
+                </Pressable>
+              );
+            })}
+          </AnimatedReanimated.View>
+          )}
+
+          {pickerMode !== 'time' && (
+          <AnimatedReanimated.View
+            entering={FadeInDown.duration(220)}
+            exiting={FadeOutUp.duration(160)}
+            style={styles.dueCalendarSurface}
+          >
+            <View style={styles.dueCalendarHeader}>
+              <Text style={styles.dueCalendarMonth} numberOfLines={1}>
+                {monthLabel}
+              </Text>
+              <View style={styles.dueCalendarNavigation}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Previous month"
+                  disabled={!canGoToPreviousMonth}
+                  onPress={() => setVisibleMonth((month) =>
+                    new Date(month.getFullYear(), month.getMonth() - 1, 1)
+                  )}
+                  style={styles.dueCalendarArrow}
+                >
+                  <ChevronRight
+                    size={19}
+                    color={canGoToPreviousMonth ? '#6C5750' : '#D8CCC7'}
+                    style={{ transform: [{ rotate: '180deg' }] }}
+                  />
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Next month"
+                  onPress={() => setVisibleMonth((month) =>
+                    new Date(month.getFullYear(), month.getMonth() + 1, 1)
+                  )}
+                  style={styles.dueCalendarArrow}
+                >
+                  <ChevronRight size={19} color="#6C5750" />
+                </Pressable>
+              </View>
+            </View>
+            <View style={styles.dueCalendarWeekdays}>
+              {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((weekday, index) => (
+                <Text key={`${weekday}-${index}`} style={styles.dueCalendarWeekday}>
+                  {weekday}
+                </Text>
+              ))}
+            </View>
+            <View style={styles.dueCalendarGrid}>
+              {calendarDates.map((date) => {
+                const selected = hasDueDate && sameLocalDay(date, selectedDate);
+                const inMonth = date.getMonth() === visibleMonth.getMonth();
+                const disabled = date < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                return (
+                  <Pressable
+                    key={date.toISOString()}
+                    accessibilityRole="button"
+                    accessibilityLabel={date.toLocaleDateString()}
+                    accessibilityState={{ selected, disabled }}
+                    disabled={disabled}
+                    onPress={() => updateDraft(date, hasTime)}
+                    style={styles.dueCalendarDay}
+                  >
+                    <View style={[styles.dueCalendarDayCircle, selected && styles.dueCalendarDaySelected]}>
+                      <Text style={[
+                        styles.dueCalendarDayText,
+                        !inMonth && styles.dueCalendarDayOutside,
+                        disabled && styles.dueCalendarDayDisabled,
+                        selected && styles.dueCalendarDayTextSelected,
+                      ]}>
+                        {date.getDate()}
+                      </Text>
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </AnimatedReanimated.View>
+          )}
+
+          {pickerMode === 'time' && (
+            <AnimatedReanimated.View
+              entering={FadeInDown.duration(210)}
+              style={styles.dueTimePicker}
+            >
+              <DateTimePicker
+                value={selectedDate}
+                mode="time"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={(_event, date) => {
+                  if (date) {
+                    updateDraft(date, true);
+                    if (Platform.OS !== 'ios') {
+                      setPickerMode('quick');
+                    }
+                  }
+                }}
+              />
+              <Pressable
+                onPress={() => {
+                  updateDraft(selectedDate, false);
+                  setPickerMode('quick');
+                }}
+              >
+                <Text style={styles.dueRemoveTime}>Remove time</Text>
+              </Pressable>
+            </AnimatedReanimated.View>
+          )}
+
+          {hasDueDate && pickerMode !== 'time' && (
+            <AnimatedReanimated.View
+              entering={FadeInDown.duration(180)}
+              style={styles.dueSelectionSummary}
+            >
+              <View style={styles.dueSelectionCopy}>
+                <Text style={styles.dueTimeLabel}>Selected</Text>
+                <Text style={styles.dueTimeValue}>
+                  {selectedSummary?.label}
+                </Text>
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={hasTime ? 'Change due time' : 'Add due time'}
+                onPress={() => setPickerMode('time')}
+                style={styles.dueAddTime}
+              >
+                <Clock3 size={13} color="#52525B" />
+                <Text style={styles.dueAddTimeText}>
+                  {hasTime ? 'Change time' : 'Add time'}
+                </Text>
+              </Pressable>
+            </AnimatedReanimated.View>
+          )}
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={hasDueDate ? 'Set due date' : 'Set no due date'}
+            onPress={handleDone}
+            style={({ pressed }) => [
+              styles.secondarySheetCta,
+              styles.dueSetCta,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text style={styles.secondarySheetCtaText}>SET DUE DATE</Text>
+          </Pressable>
+          </ScrollView>
         </AnimatedReanimated.View>
         </Animated.View>
       </View>
@@ -1452,16 +1865,13 @@ function TogetherChooserSheet({
   const [personMode, setPersonMode] = useState<
     Exclude<GoalCollaborationMode, 'private'> | null
   >(null);
-  const [pendingSelection, setPendingSelection] = useState<{
-    mode: GoalCollaborationMode;
-    userId: string | null;
-  } | null>(null);
+  const [draftMode, setDraftMode] = useState<GoalCollaborationMode>(value);
 
   useEffect(() => {
     if (!visible) return;
     closingRef.current = false;
     setPersonMode(null);
-    setPendingSelection(null);
+    setDraftMode(value);
     sheetY.setValue(36);
     backdropOpacity.setValue(0);
     Animated.parallel([
@@ -1486,7 +1896,6 @@ function TogetherChooserSheet({
     selection?: { mode: GoalCollaborationMode; userId: string | null }
   ) => {
     if (closingRef.current) return;
-    if (selection) setPendingSelection(selection);
     closingRef.current = true;
     Animated.parallel([
       Animated.timing(sheetY, {
@@ -1509,39 +1918,27 @@ function TogetherChooserSheet({
     });
   };
 
-  const soleConnection = connections.length === 1 ? connections[0] : null;
   const choices: Array<{
     mode: GoalCollaborationMode;
     eyebrow: string;
-    title: string;
     copy: string;
   }> = [
     {
       mode: 'private',
       eyebrow: 'JUST ME',
-      title: 'Just me',
-      copy: "This one's mine",
+      copy: "I’m doing this for myself.",
     },
     {
       mode: 'shared',
       eyebrow: 'TOGETHER',
-      title: 'Together',
-      copy: "We're doing this together",
+      copy: "We're working toward this together.",
     },
     {
       mode: 'supported',
-      eyebrow: 'SUPPORT',
-      title: 'Support me',
-      copy: "I'm doing it — they're in my corner",
+      eyebrow: 'SUPPORT ME',
+      copy: "I’m doing this, with someone in my corner.",
     },
-  ].filter(
-    (choice) => choice.mode === 'private' || connections.length > 0
-  ) as Array<{
-    mode: GoalCollaborationMode;
-    eyebrow: string;
-    title: string;
-    copy: string;
-  }>;
+  ];
 
   return (
     <Modal
@@ -1573,23 +1970,21 @@ function TogetherChooserSheet({
           ]}
         >
           <View style={styles.dragHandleArea}>
-            <View style={styles.grabber} />
+            <View style={[styles.grabber, styles.secondarySheetGrabber]} />
           </View>
           <View style={styles.togetherChooserHeader}>
-            <View>
-              <Text style={styles.duePickerKicker}>DOING THIS</Text>
-              <Text style={styles.togetherChooserTitle}>
-                {personMode ? 'Who’s in this with you?' : 'How are you doing this?'}
-              </Text>
-            </View>
+            <Text style={styles.togetherChooserTitle}>
+              {personMode ? 'Who’s in this with you?' : 'Doing this'}
+            </Text>
             <Pressable
               onPress={() => dismiss()}
+              hitSlop={6}
               style={({ pressed }) => [
-                styles.close,
+                styles.secondarySheetClose,
                 pressed && styles.pressed,
               ]}
             >
-              <X size={18} color="#52525B" />
+              <X size={22} color="#5F4D47" />
             </Pressable>
           </View>
           <View style={styles.togetherChoices}>
@@ -1634,46 +2029,56 @@ function TogetherChooserSheet({
                 </Pressable>
               );
             }) : choices.map((choice) => {
-              const selected =
-                choice.mode === (pendingSelection?.mode ?? value) &&
-                (choice.mode === 'private' || (pendingSelection?.userId ?? personId) !== null);
+              const selected = choice.mode === draftMode;
+              const identityStyle = choice.mode === 'private'
+                ? styles.togetherChoicePrivate
+                : choice.mode === 'shared'
+                  ? styles.togetherChoiceShared
+                  : styles.togetherChoiceSupported;
               return (
                 <Pressable
                   key={choice.mode}
-                  onPress={() => {
-                    if (choice.mode === 'private') {
-                      dismiss({ mode: 'private', userId: null });
-                    } else if (soleConnection) {
-                      dismiss({ mode: choice.mode, userId: soleConnection.userId });
-                    } else {
-                      setPersonMode(choice.mode);
-                    }
-                  }}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected }}
+                  onPress={() => setDraftMode(choice.mode)}
                   style={({ pressed }) => [
                     styles.togetherChoice,
-                    selected && styles.togetherChoiceSelected,
+                    styles.togetherModeChoice,
+                    selected && identityStyle,
                     pressed && styles.pressed,
                   ]}
                 >
-                  <View style={styles.togetherChoiceModeIcon}>
+                  <View style={[
+                    styles.togetherChoiceModeIcon,
+                    choice.mode === 'private'
+                      ? styles.togetherIconPrivate
+                      : choice.mode === 'shared'
+                        ? styles.togetherIconShared
+                        : styles.togetherIconSupported,
+                  ]}>
                     {choice.mode === 'private' ? (
-                      <User size={16} color="#71717A" strokeWidth={2.3} />
+                      <User size={20} color="#B84A36" strokeWidth={2.4} />
                     ) : choice.mode === 'shared' ? (
-                      <Users size={16} color="#8170B1" strokeWidth={2.3} />
+                      <Users size={20} color="#8B7100" strokeWidth={2.4} />
                     ) : (
-                      <Heart size={16} color="#A56D55" strokeWidth={2.3} />
+                      <HeartHandshake size={20} color="#147F78" strokeWidth={2.4} />
                     )}
                   </View>
                   <View style={styles.togetherChoiceCopy}>
-                    <Text style={styles.togetherChoiceEyebrow}>{choice.eyebrow}</Text>
-                    <Text style={styles.togetherChoiceTitle}>{choice.title}</Text>
-                    <Text style={styles.togetherChoiceDescription}>{choice.copy}</Text>
+                    <Text style={styles.togetherModeTitle}>{choice.eyebrow}</Text>
+                    <Text style={styles.togetherModeDescription}>{choice.copy}</Text>
                   </View>
                   <View style={[
-                    styles.togetherChoiceCheck,
-                    selected && styles.togetherChoiceCheckSelected,
+                    styles.togetherModeRadio,
+                    selected && (
+                      choice.mode === 'supported'
+                        ? styles.togetherModeRadioSupported
+                        : choice.mode === 'shared'
+                          ? styles.togetherModeRadioShared
+                          : styles.togetherModeRadioSelected
+                    ),
                   ]}>
-                    {selected && <Check size={13} color="#FFFFFF" strokeWidth={3} />}
+                    {selected && <View style={styles.togetherChoiceRadioDot} />}
                   </View>
                 </Pressable>
               );
@@ -1683,7 +2088,7 @@ function TogetherChooserSheet({
                 <Text style={styles.togetherChooserBackText}>Back</Text>
               </Pressable>
             )}
-            {!personMode && connections.length === 0 && (
+            {personMode && connections.length === 0 && (
               <View style={styles.togetherNoConnections}>
                 <Text style={styles.togetherNoConnectionsText}>
                   Invite someone before sharing or asking for support. Existing goals stay private.
@@ -1700,6 +2105,25 @@ function TogetherChooserSheet({
               </View>
             )}
           </View>
+          {!personMode && (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => {
+                if (draftMode === 'private') {
+                  dismiss({ mode: 'private', userId: null });
+                  return;
+                }
+                setPersonMode(draftMode);
+              }}
+              style={({ pressed }) => [
+                styles.secondarySheetCta,
+                styles.togetherContinue,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={styles.secondarySheetCtaText}>CONTINUE</Text>
+            </Pressable>
+          )}
         </Animated.View>
       </View>
     </Modal>
@@ -9670,7 +10094,7 @@ opacity: submitPreviewOpacity,
   </Animated.View>
   </Animated.View>
 )}
-    <DueDatePickerSheet
+    <NewGoalDueDatePickerSheet
       visible={duePickerOpen}
       dueAt={dueAt}
       dueHasTime={dueHasTime}
@@ -11447,7 +11871,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
 
-  duePickerSheet: {
+  legacyDuePickerSheet: {
     paddingHorizontal: 19,
     paddingTop: 9,
     paddingBottom: 22,
@@ -11461,11 +11885,44 @@ const styles = StyleSheet.create({
     elevation: 12,
   },
 
-  duePickerHeader: {
+  legacyDuePickerHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 14,
+  },
+
+  legacyDuePickerTitle: {
+    color: '#27272A',
+    fontSize: 18,
+    fontWeight: '900',
+    marginTop: 3,
+  },
+
+  duePickerSheet: {
+    maxHeight: '94%',
+    paddingHorizontal: 25,
+    paddingTop: 8,
+    paddingBottom: 22,
+    borderTopLeftRadius: 34,
+    borderTopRightRadius: 34,
+    backgroundColor: '#FFFDFB',
+    shadowColor: colors.warmShadow,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 6,
+  },
+
+  duePickerContent: {
+    paddingBottom: 2,
+  },
+
+  duePickerHeader: {
+    minHeight: 47,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 18,
   },
 
   duePickerKicker: {
@@ -11476,10 +11933,12 @@ const styles = StyleSheet.create({
   },
 
   duePickerTitle: {
-    color: '#27272A',
-    fontSize: 18,
+    color: '#292522',
+    fontSize: 27,
+    lineHeight: 34,
     fontWeight: '900',
-    marginTop: 3,
+    letterSpacing: -0.65,
+    textAlign: 'center',
   },
 
   duePickerDone: {
@@ -11503,35 +11962,80 @@ const styles = StyleSheet.create({
   },
 
   togetherChooserSheet: {
-    paddingHorizontal: 19,
-    paddingTop: 9,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    backgroundColor: colors.surface,
+    paddingHorizontal: 25,
+    paddingTop: 8,
+    borderTopLeftRadius: 34,
+    borderTopRightRadius: 34,
+    backgroundColor: '#FFFDFB',
     shadowColor: colors.warmShadow,
     shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.13,
-    shadowRadius: 22,
-    elevation: 15,
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 6,
   },
 
   togetherChooserHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    marginBottom: 16,
+    minHeight: 47,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
   },
 
   togetherChooserTitle: {
-    color: '#27272A',
-    fontSize: 19,
+    color: '#292522',
+    fontSize: 27,
+    lineHeight: 34,
     fontWeight: '900',
-    letterSpacing: -0.35,
-    marginTop: 3,
+    letterSpacing: -0.65,
+    textAlign: 'center',
   },
 
   togetherChoices: {
-    gap: 8,
+    gap: 10,
+  },
+
+  secondarySheetGrabber: {
+    width: 38,
+    backgroundColor: '#E4D7D1',
+    marginBottom: 8,
+  },
+
+  secondarySheetClose: {
+    position: 'absolute',
+    right: 0,
+    top: 4,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  secondarySheetCta: {
+    minHeight: 59,
+    borderRadius: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.coralStrong,
+    shadowColor: colors.coralPrimary,
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+
+  secondarySheetCtaText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '900',
+    letterSpacing: 0.15,
+  },
+
+  dueSetCta: {
+    marginTop: 24,
+  },
+
+  togetherContinue: {
+    marginTop: 32,
   },
 
   togetherChooserBack: {
@@ -11584,6 +12088,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
+  togetherModeChoice: {
+    minHeight: 98,
+    paddingHorizontal: 17,
+    paddingVertical: 14,
+    borderRadius: 22,
+    borderColor: '#EFE4DF',
+    backgroundColor: '#FFFDFC',
+  },
+
+  togetherChoicePrivate: {
+    borderColor: '#F1CEC5',
+    backgroundColor: '#FFF9F7',
+  },
+
+  togetherChoiceShared: {
+    borderColor: '#E9DDAF',
+    backgroundColor: '#FFFCF1',
+  },
+
+  togetherChoiceSupported: {
+    borderColor: '#A9DCD7',
+    backgroundColor: '#F3FCFA',
+  },
+
   togetherChoiceSelected: {
     borderColor: '#CFC3EC',
     backgroundColor: '#F8F5FF',
@@ -11602,6 +12130,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#F7F5F8',
     marginRight: 10,
+  },
+
+  togetherIconPrivate: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    marginRight: 16,
+    backgroundColor: '#FFF0EC',
+  },
+
+  togetherIconShared: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    marginRight: 16,
+    backgroundColor: '#FFF4CB',
+  },
+
+  togetherIconSupported: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    marginRight: 16,
+    backgroundColor: '#D8F4F0',
   },
 
   togetherChoiceEyebrow: {
@@ -11625,6 +12177,20 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
 
+  togetherModeTitle: {
+    color: '#272321',
+    fontSize: 14,
+    fontWeight: '900',
+  },
+
+  togetherModeDescription: {
+    color: '#5F514C',
+    fontSize: 12.5,
+    lineHeight: 18,
+    fontWeight: '600',
+    marginTop: 5,
+  },
+
   togetherChoiceCheck: {
     width: 23,
     height: 23,
@@ -11641,23 +12207,89 @@ const styles = StyleSheet.create({
     backgroundColor: '#9E8BE8',
   },
 
+  togetherModeRadio: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: '#DFC9C2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 12,
+  },
+
+  togetherModeRadioSelected: {
+    borderColor: '#E76550',
+    backgroundColor: '#FF7D6C',
+  },
+
+  togetherModeRadioShared: {
+    borderColor: '#B18B00',
+    backgroundColor: '#D9AD16',
+  },
+
+  togetherModeRadioSupported: {
+    borderColor: '#148C83',
+    backgroundColor: '#35B7AD',
+  },
+
+  togetherChoiceRadioDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#FFFFFF',
+  },
+
   dueQuickChoices: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: 12,
+    marginBottom: 22,
+  },
+
+  legacyDueQuickChoices: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
   },
 
-  dueQuickChipPressable: {
+  legacyDueQuickChipPressable: {
     borderRadius: 14,
   },
 
-  dueQuickChip: {
+  dueQuickChipPressable: {
+    width: '48.2%',
+    borderRadius: 12,
+  },
+
+  legacyDueQuickChip: {
     minHeight: 36,
     paddingHorizontal: 12,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#F4F4F5',
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+
+  legacyDueQuickChipText: {
+    color: '#71717A',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+
+  dueQuickChip: {
+    width: '100%',
+    minHeight: 57,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    gap: 11,
+    backgroundColor: '#FFFCFA',
     borderWidth: 1,
     borderColor: 'transparent',
   },
@@ -11678,9 +12310,107 @@ const styles = StyleSheet.create({
   },
 
   dueQuickChipText: {
-    color: '#71717A',
-    fontSize: 10,
+    flexShrink: 1,
+    color: '#5C4943',
+    fontSize: 13,
     fontWeight: '800',
+  },
+
+  dueCalendarSurface: {
+    paddingHorizontal: 16,
+    paddingTop: 18,
+    paddingBottom: 14,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#EEDCD5',
+    backgroundColor: '#FFF8F5',
+  },
+
+  dueCalendarHeader: {
+    minHeight: 38,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+
+  dueCalendarMonth: {
+    flex: 1,
+    minWidth: 0,
+    color: '#292522',
+    fontSize: 18,
+    fontWeight: '900',
+    letterSpacing: -0.3,
+  },
+
+  dueCalendarNavigation: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+
+  dueCalendarArrow: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  dueCalendarWeekdays: {
+    flexDirection: 'row',
+  },
+
+  dueCalendarWeekday: {
+    width: '14.285714%',
+    color: '#8A726A',
+    fontSize: 11,
+    fontWeight: '700',
+    textAlign: 'center',
+    paddingVertical: 7,
+  },
+
+  dueCalendarGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+
+  dueCalendarDay: {
+    width: '14.285714%',
+    minHeight: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  dueCalendarDayCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  dueCalendarDaySelected: {
+    backgroundColor: colors.coralStrong,
+  },
+
+  dueCalendarDayText: {
+    color: '#312B28',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+
+  dueCalendarDayOutside: {
+    color: '#B9AAA4',
+  },
+
+  dueCalendarDayDisabled: {
+    color: '#DDD2CD',
+  },
+
+  dueCalendarDayTextSelected: {
+    color: '#FFFFFF',
+    fontWeight: '900',
   },
 
   dueQuickChipTextSelected: {

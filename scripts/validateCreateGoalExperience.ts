@@ -10,7 +10,7 @@ const modal = source.slice(modalStart, modalEnd);
 const chooserStart = source.indexOf('function TogetherChooserSheet({');
 const chooserEnd = source.indexOf('\nfunction ', chooserStart + 20);
 const chooser = source.slice(chooserStart, chooserEnd);
-const dueStart = source.indexOf('function DueDatePickerSheet({');
+const dueStart = source.indexOf('function NewGoalDueDatePickerSheet({');
 const dueEnd = source.indexOf('\nfunction DueRow(', dueStart);
 const due = source.slice(dueStart, dueEnd);
 const sheetMorphTimingStart = modal.indexOf('Animated.timing(\n        sheetMorph,');
@@ -72,8 +72,8 @@ requireCondition(sourceHeightTiming.includes('useNativeDriver: false'), 'JS-only
 requireCondition(modal.includes('opacity: morphCardOpacity') && modal.includes('? sourceShellHeight') && modal.includes('maxHeight: resolvedSheetFrame.height'), 'Native visual morph values and JS-only layout height are not separated.');
 requireCondition(modal.includes("...(transitionSheetFrame ? { height: '100%' as const } : null)"), 'Native morph wrapper is constraining the pre-measurement sheet geometry.');
 
-requireCondition(chooser.includes('How are you doing this?') && chooser.includes("This one's mine") && chooser.includes("We're doing this together") && chooser.includes("I'm doing it — they're in my corner"), 'Relationship choices changed.');
-requireCondition(due.includes('selectQuickDate') && due.includes('setTimeout(closeSurface, 110)') && due.includes("pickerMode !== 'quick'"), 'Due behavior changed.');
+requireCondition(chooser.includes('Doing this') && chooser.includes('I’m doing this for myself.') && chooser.includes("We're working toward this together.") && chooser.includes('I’m doing this, with someone in my corner.') && chooser.includes('CONTINUE'), 'Locked relationship choices changed.');
+requireCondition(due.includes('selectQuickDate') && due.includes('normalizeDueDate(selectedDate, hasTime)') && due.includes('sameLocalDay(date, selectedDate)') && due.includes('SET DUE DATE'), 'Locked synchronized Due Date behavior changed.');
 requireCondition(source.includes("'Goal created'"), 'Creation confirmation changed.');
 
 let state: 'closed' | 'preparingOpen' | 'opening' | 'open' | 'closing' | 'handoffToFab' = 'closed';
