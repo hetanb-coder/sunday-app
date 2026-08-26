@@ -1397,15 +1397,15 @@ function NewGoalDueDatePickerSheet({
   const [visibleMonth, setVisibleMonth] = useState(
     new Date(initialDate.getFullYear(), initialDate.getMonth(), 1)
   );
-  const [outgoingMonth, setOutgoingMonth] = useState<Date | null>(null);
+  const [incomingMonth, setIncomingMonth] = useState<Date | null>(null);
   const [monthDirection, setMonthDirection] = useState<1 | -1>(1);
   const sheetY = useRef(new Animated.Value(viewportHeight)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
   const monthProgress = useRef(new Animated.Value(0)).current;
   const closingRef = useRef(false);
   const monthAnimatingRef = useRef(false);
-  const queuedMonthDeltaRef = useRef(0);
   const visibleMonthRef = useRef(visibleMonth);
+  const monthAnimationFrameRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!visible) return;
@@ -1416,10 +1416,13 @@ function NewGoalDueDatePickerSheet({
     setSelectedDate(nextDate);
     setHasDueDate(Boolean(dueAt));
     setVisibleMonth(nextMonth);
-    setOutgoingMonth(null);
+    setIncomingMonth(null);
     visibleMonthRef.current = nextMonth;
     monthAnimatingRef.current = false;
-    queuedMonthDeltaRef.current = 0;
+    if (monthAnimationFrameRef.current !== null) {
+      cancelAnimationFrame(monthAnimationFrameRef.current);
+      monthAnimationFrameRef.current = null;
+    }
     monthProgress.stopAnimation();
     monthProgress.setValue(0);
     closingRef.current = false;
@@ -1467,6 +1470,12 @@ function NewGoalDueDatePickerSheet({
     if (visible && dismissRequest > 0) closeSurface();
   }, [dismissRequest]);
 
+  useEffect(() => {
+    if (!incomingMonth && !monthAnimatingRef.current) {
+      monthProgress.setValue(0);
+    }
+  }, [incomingMonth, monthProgress]);
+
   if (!visible) return null;
 
   const updateDraft = (date: Date) => {
@@ -1477,11 +1486,14 @@ function NewGoalDueDatePickerSheet({
     updateDraft(date);
     monthProgress.stopAnimation();
     monthAnimatingRef.current = false;
-    queuedMonthDeltaRef.current = 0;
-    setOutgoingMonth(null);
+    if (monthAnimationFrameRef.current !== null) {
+      cancelAnimationFrame(monthAnimationFrameRef.current);
+      monthAnimationFrameRef.current = null;
+    }
     const nextMonth = new Date(date.getFullYear(), date.getMonth(), 1);
     visibleMonthRef.current = nextMonth;
     setVisibleMonth(nextMonth);
+    setIncomingMonth(null);
   };
   const quickChoices = [
     { label: 'Today', date: addLocalDays(new Date(), 0) },
@@ -1510,10 +1522,7 @@ function NewGoalDueDatePickerSheet({
     year: 'numeric',
   });
   const startMonthTransition = (direction: 1 | -1) => {
-    if (monthAnimatingRef.current) {
-      queuedMonthDeltaRef.current += direction;
-      return;
-    }
+    if (monthAnimatingRef.current) return;
     const currentMonth = visibleMonthRef.current;
     const nextMonth = new Date(
       currentMonth.getFullYear(),
@@ -1525,25 +1534,22 @@ function NewGoalDueDatePickerSheet({
 
     monthAnimatingRef.current = true;
     setMonthDirection(direction);
-    setOutgoingMonth(currentMonth);
-    visibleMonthRef.current = nextMonth;
-    setVisibleMonth(nextMonth);
+    setIncomingMonth(nextMonth);
     monthProgress.setValue(0);
-    Animated.timing(monthProgress, {
-      toValue: 1,
-      duration: 260,
-      easing: Easing.bezier(0.22, 1, 0.36, 1),
-      useNativeDriver: true,
-    }).start(({ finished }) => {
-      monthAnimatingRef.current = false;
-      setOutgoingMonth(null);
-      monthProgress.setValue(0);
-      if (!finished) return;
-      const queuedDelta = queuedMonthDeltaRef.current;
-      if (queuedDelta === 0) return;
-      const queuedDirection: 1 | -1 = queuedDelta > 0 ? 1 : -1;
-      queuedMonthDeltaRef.current -= queuedDirection;
-      startMonthTransition(queuedDirection);
+    monthAnimationFrameRef.current = requestAnimationFrame(() => {
+      monthAnimationFrameRef.current = null;
+      Animated.timing(monthProgress, {
+        toValue: 1,
+        duration: 260,
+        easing: Easing.bezier(0.22, 1, 0.36, 1),
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        monthAnimatingRef.current = false;
+        if (!finished) return;
+        visibleMonthRef.current = nextMonth;
+        setVisibleMonth(nextMonth);
+        setIncomingMonth(null);
+      });
     });
   };
   const renderCalendarGrid = (month: Date) => (
@@ -1601,14 +1607,11 @@ function NewGoalDueDatePickerSheet({
         </Animated.View>
         <Animated.View
           style={[
-            styles.duePickerMotionShell,
-            { transform: [{ translateY: sheetY }] },
-          ]}
-        >
-        <View
-          style={[
             styles.duePickerSheet,
-            { paddingBottom: Math.max(16, insets.bottom + 8) },
+            {
+              paddingBottom: Math.max(16, insets.bottom + 8),
+              transform: [{ translateY: sheetY }],
+            },
           ]}
         >
           <View style={styles.dragHandleArea}>
@@ -1700,7 +1703,7 @@ function NewGoalDueDatePickerSheet({
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Previous month"
-                  disabled={!canGoToPreviousMonth}
+                  disabled={!canGoToPreviousMonth || Boolean(incomingMonth)}
                   hitSlop={3}
                   onPress={() => startMonthTransition(-1)}
                   style={styles.dueCalendarArrow}
@@ -1714,6 +1717,7 @@ function NewGoalDueDatePickerSheet({
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Next month"
+                  disabled={Boolean(incomingMonth)}
                   hitSlop={3}
                   onPress={() => startMonthTransition(1)}
                   style={styles.dueCalendarArrow}
@@ -1730,7 +1734,8 @@ function NewGoalDueDatePickerSheet({
               ))}
             </View>
             <View style={styles.dueCalendarGridViewport}>
-              {outgoingMonth && (
+              {incomingMonth ? (
+                <>
                 <Animated.View
                   pointerEvents="none"
                   style={[
@@ -1745,26 +1750,29 @@ function NewGoalDueDatePickerSheet({
                     },
                   ]}
                 >
-                  {renderCalendarGrid(outgoingMonth)}
+                  {renderCalendarGrid(visibleMonth)}
                 </Animated.View>
-              )}
-              <Animated.View
-                style={[
-                  styles.dueCalendarGridLayer,
-                  {
-                    transform: [{
-                      translateX: outgoingMonth
-                        ? monthProgress.interpolate({
+                <Animated.View
+                  style={[
+                    styles.dueCalendarGridLayer,
+                    {
+                      transform: [{
+                        translateX: monthProgress.interpolate({
                             inputRange: [0, 1],
                             outputRange: [monthDirection * viewportWidth, 0],
-                          })
-                        : 0,
-                    }],
-                  },
-                ]}
-              >
-                {renderCalendarGrid(visibleMonth)}
-              </Animated.View>
+                          }),
+                      }],
+                    },
+                  ]}
+                >
+                  {renderCalendarGrid(incomingMonth)}
+                </Animated.View>
+                </>
+              ) : (
+                <View style={styles.dueCalendarGridLayer}>
+                  {renderCalendarGrid(visibleMonth)}
+                </View>
+              )}
             </View>
           </View>
 
@@ -1782,7 +1790,6 @@ function NewGoalDueDatePickerSheet({
           >
             <Text style={styles.secondarySheetCtaText}>DONE</Text>
           </Pressable>
-        </View>
         </Animated.View>
       </View>
   );
