@@ -131,7 +131,14 @@ import type {
   RemoteTask,
   RemoteWorkspace,
 } from './src/backend/workspaceDomain';
-import { categoryColors, categoryNames, colors, motion } from './src/theme';
+import {
+  categoryColors,
+  categoryNames,
+  colors,
+  getCategoryColors,
+  getCategoryName,
+  motion,
+} from './src/theme';
 import type { CategoryColorFamily } from './src/theme';
 
 type Category =
@@ -4630,7 +4637,10 @@ function Focus({
   shake: boolean;
   shakeNonce: number;
 }) {
-  const c = COLORS[task.category];
+  const c = {
+    ...getCategoryColors(task.category),
+    name: getCategoryName(task.category),
+  };
   const duePresentation = formatDue(
     task.dueAt,
     Boolean(task.dueHasTime)
@@ -4663,8 +4673,8 @@ function Focus({
     new Animated.Value(0)
   ).current;
   const focusColorProgress = useRef(new Animated.Value(1)).current;
-  const previousFocusSurface = useRef(colors.peachPastel);
-  const previousFocusTaskId = useRef(task.id);
+  const previousFocusSurface = useRef(c.surface);
+  const previousFocusTaskKey = useRef(`${task.id}:${task.category}`);
   const lastShakeNonce = useRef(shakeNonce);
   const pressProgress = useSharedValue(0);
   const completionProgress = useSharedValue(0);
@@ -4745,8 +4755,9 @@ function Focus({
   }, [shake, shakeNonce]);
 
   useLayoutEffect(() => {
-    if (previousFocusTaskId.current === task.id) return;
-    previousFocusTaskId.current = task.id;
+    const focusTaskKey = `${task.id}:${task.category}`;
+    if (previousFocusTaskKey.current === focusTaskKey) return;
+    previousFocusTaskKey.current = focusTaskKey;
     focusContentOpacity.stopAnimation();
     focusContentY.stopAnimation();
     focusColorProgress.stopAnimation();
@@ -4776,8 +4787,8 @@ function Focus({
 
     nativeContentTransition.start();
     surfaceTransition.start(({ finished }) => {
-      if (finished && previousFocusTaskId.current === task.id) {
-        previousFocusSurface.current = colors.peachPastel;
+      if (finished && previousFocusTaskKey.current === focusTaskKey) {
+        previousFocusSurface.current = c.surface;
       }
     });
 
@@ -4785,11 +4796,11 @@ function Focus({
       nativeContentTransition.stop();
       surfaceTransition.stop();
     };
-  }, [task.id, reducedMotion, focusColorProgress, focusContentOpacity, focusContentY]);
+  }, [task.id, task.category, c.surface, reducedMotion, focusColorProgress, focusContentOpacity, focusContentY]);
 
   const focusSurface = focusColorProgress.interpolate({
     inputRange: [0, 1],
-    outputRange: [previousFocusSurface.current, colors.peachPastel],
+    outputRange: [previousFocusSurface.current, c.surface],
   });
 
   return (
@@ -10363,7 +10374,7 @@ const styles = StyleSheet.create({
     maxWidth: 520,
     alignSelf: 'center',
     paddingHorizontal: 24,
-    paddingTop: 13,
+    paddingTop: 31,
   },
 
   rowBetween: {

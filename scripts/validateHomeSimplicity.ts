@@ -40,7 +40,9 @@ requireCondition(source.includes('function GoalProgressControl') && source.inclu
 requireCondition(source.includes('strokeDashoffset={strokeDashoffset}') && source.includes('stroke={colors.coralPrimary}'), 'Current Focus progress ring is missing the Sunday coral progress arc.');
 requireCondition(!focus.includes('task.microSteps.map'), 'Current Focus still renders every microtask.');
 requireCondition(!focus.includes('heroDepth') && !focus.includes('heroGlow'), 'Current Focus still uses the old card-like decoration.');
-requireCondition(focus.includes('backgroundColor: focusSurface') && source.includes("backgroundColor: '#FFF9F2'"), 'Current Focus is missing the peach hero or warm Next Step inset.');
+requireCondition(focus.includes('getCategoryColors(task.category)') && focus.includes('outputRange: [previousFocusSurface.current, c.surface]'), 'Current Focus hero is not category-responsive with a safe fallback.');
+requireCondition(focus.includes('backgroundColor: focusSurface') && source.includes("backgroundColor: '#FFF9F2'"), 'Current Focus is missing the category hero or warm Next Step inset.');
+requireCondition(source.includes('paddingTop: 31'), 'Home is missing the approved additional top breathing room.');
 requireCondition(focus.includes('<GoalProgressControl') && focus.includes('HomeRelationshipBadge'), 'Editorial Next Step composition is incomplete.');
 requireCondition(!focus.includes('ADHD GUARDRAIL'), 'Current Focus still renders the guardrail block.');
 requireCondition(focus.includes('relationshipContext'), 'Current Focus does not expose relationship context.');
