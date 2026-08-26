@@ -1,0 +1,51 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+const app = readFileSync(resolve(process.cwd(), 'App.tsx'), 'utf8');
+const lab = readFileSync(resolve(process.cwd(), 'src/dev/NewGoalMotionLab.tsx'), 'utf8');
+const d3Shared = readFileSync(resolve(process.cwd(), 'src/motion/d3AnchoredUnfurl.ts'), 'utf8');
+const d4Shared = readFileSync(resolve(process.cwd(), 'src/motion/d4AnchoredUnfurl.ts'), 'utf8');
+const morphCanvas = readFileSync(resolve(process.cwd(), 'src/components/NewGoalMorphCanvas.tsx'), 'utf8');
+const appContent = app.slice(app.indexOf('function AppContent('), app.indexOf('\nfunction Focus('));
+const requireCondition = (condition: boolean, message: string) => {
+  if (!condition) throw new Error(message);
+};
+
+requireCondition(appContent.includes('{__DEV__ && <NewGoalMotionLab />}'), 'Motion Lab is not guarded by __DEV__ inside the active AppContent tree.');
+requireCondition(lab.includes('top: 94') && lab.includes('zIndex: 20000') && lab.includes('elevation: 12'), 'Motion Lab launcher is not visibly stacked below BACKEND.');
+requireCondition(lab.includes('if (!__DEV__) return null;'), 'Motion Lab does not fail closed outside development.');
+requireCondition(lab.includes("type Variant = 'A' | 'B' | 'C' | 'C2' | 'D' | 'D2' | 'D3' | 'D3T' | 'E' | 'F1' | 'F2' | 'F3'") && lab.includes("{ id: 'D3', label: 'Baseline' }") && lab.includes("{ id: 'D3T', label: 'Tuned' }") && lab.includes("{ id: 'E', label: 'Focus Rise' }") && lab.includes("{ id: 'F1', label: 'Soft Landing' }") && lab.includes("{ id: 'F2', label: 'Place & Settle' }") && lab.includes("{ id: 'F3', label: 'Lifted Card' }"), 'D3/E/F landing study selector labels are missing.');
+requireCondition(lab.includes("const CORAL = '#FF7D6C'") && lab.includes("const CREAM = '#FFFDFB'"), 'Shared coral/cream study colors are incorrect.');
+requireCondition(lab.includes('const fixedSheet = useMemo(() => sheetPath(frame)') && lab.includes('<Group clip={fixedSheet}>'), 'The final cream sheet is not fixed at destination geometry and clip-revealed.');
+requireCondition(lab.includes('ribbonPath') && lab.includes('radialRadius') && lab.includes('waveBandPath') && lab.includes('waveRevealPath'), 'One or more reveal concept generators are missing.');
+requireCondition(lab.includes('liquidBoundaryPoints') && lab.includes('liquidRevealPath') && lab.includes('liquidEdgePath') && lab.includes('const thickness = 28'), 'C2 is not driven by one curved reveal boundary with a narrow coral edge.');
+requireCondition(lab.includes('metaballPath') && lab.includes('const retention = 1 - smoothStep') && lab.includes('const bridgeWidth = 22 + retention * 18') && lab.includes('[0, 0.76, 1]'), 'D does not use a retained FAB mass, broad cubic bridge, and late whole-surface color resolve.');
+requireCondition(lab.includes('metaballMergePath') && lab.includes('organicSettlePath') && lab.includes('if (progress >= 0.72)') && lab.includes('const bridge = 26 + 18 * connection') && lab.includes('[0, 0.78, 1]'), 'D2 does not preserve two organic masses through 72% with a broad bridge and late color settle.');
+requireCondition(lab.includes('anchoredUnfurlPath') && lab.includes('type D3Node') && lab.includes('const localProgress = [') && lab.includes("d3Local(progress, 0.75, 0.92)") && lab.includes('current.x + current.outX'), 'D3 is not one tangent-continuous eight-node path with a delayed bottom-right anchor.');
+requireCondition(lab.includes('[0, 0.8, 1]') && lab.includes('anchoredUnfurlColor'), 'D3 does not retain coral through 80% before its final cream resolve.');
+requireCondition(lab.includes('buildAnchoredUnfurlPath') && lab.includes('getAnchoredUnfurlNodes') && lab.includes('D3_TUNED_DEFAULTS') && d3Shared.includes('const amounts = ['), 'D3 Tuned is not backed by the shared parameterized one-path topology.');
+requireCondition(lab.includes('d3FabFrame') && lab.includes('d3SheetFrame') && lab.includes('buildAnchoredUnfurlPath(progress.value, d3FabFrame, d3SheetFrame, tuning, 30)'), 'Motion Lab D3 Tuned does not map its preview frames through the shared production geometry function.');
+requireCondition(['openingDuration', 'closingDuration', 'anticipationDuration', 'upperLeftReleaseStart', 'upperLeftCurve', 'widthLead', 'heightLag', 'anchorHold', 'anchorRelease', 'finalSettle', 'colorStart', 'colorDuration', 'fadeStart', 'fadeEnd'].every((key) => lab.includes(`key: '${key}'`)), 'One or more requested D3 tuning controls are missing.');
+requireCondition(lab.includes('Array.from({ length: 11 }') && lab.includes('DEBUG PATH') && lab.includes('debugHandles') && lab.includes('debugNodes.map') && lab.includes('debugPath && !playing'), 'Progress presets or playback-hidden debug path visualization is missing.');
+requireCondition(lab.includes('OPEN_MS: Record<Variant, number> = { A: 300, B: 295, C: 300, C2: 350, D: 340, D2: 340, D3: 330, D3T: 330, E: 500, F1: 500, F2: 500, F3: 500 }') && lab.includes('CLOSE_MS: Record<Variant, number> = { A: 280, B: 275, C: 280, C2: 330, D: 320, D2: 315, D3: 290, D3T: 290, E: 380, F1: 380, F2: 380, F3: 380 }'), 'Motion Lab variant timings are incorrect.');
+requireCondition(lab.includes("useState<1 | 0.5 | 0.25>") && lab.includes('scrubResponder.panHandlers'), 'Slow-motion or scrub controls are missing.');
+requireCondition(lab.includes('progress.value = withTiming(0') && lab.includes("focusStudy ? 'Play Close' : 'Close'") && lab.includes('Reset</Text>'), 'Reverse preview, Close, or Reset control is missing.');
+requireCondition(!lab.includes('workspaceDomain') && !lab.includes('Supabase') && !lab.includes('createGoal'), 'Motion Lab is coupled to production goal behavior.');
+requireCondition(lab.includes('Easing.bezier(0.22, 1, 0.36, 1)') && lab.includes('Easing.bezier(0.25, 0.96, 0.36, 1)'), 'Focus Rise B Original/B Soft Launch comparison is incomplete.');
+requireCondition(lab.includes('const translateY = height + (destinationTop - height) * p') && !lab.includes('translateX }, { rotateZ'), 'Focus Rise is not strictly vertical.');
+requireCondition(lab.includes("useState<FocusRiseEasing>('BSoftLaunch')") && lab.includes("{ value: 'BOriginal', label: 'B Original' }") && lab.includes("{ value: 'BSoftLaunch', label: 'B Soft Launch' }"), 'Focus Rise B comparison selector or Soft Launch default is missing.');
+requireCondition(lab.includes('Easing.bezier(0.4, 0, 0.8, 0.2)') && lab.includes('duration: 500 / speed'), 'Focus Rise opening/closing pacing is incorrect.');
+requireCondition(lab.includes("focusRiseDestination === 'E1' ? 18 : 0") && lab.includes("setFocusRiseDestination('E1')") && lab.includes("setFocusRiseDestination('E2')"), 'E1/E2 destination treatment is missing.');
+requireCondition(lab.includes('finalScaleReduction = foregroundLandingStudy ? 0.018 : 0.015') && lab.includes('translateY: -depth * 3') && lab.includes('* 0.14'), 'E/F Home depth treatment differs from the approved restrained values.');
+requireCondition(lab.includes("variant === 'F3' ? 22") && lab.includes("variant === 'F3' ? 14 : 0"), 'F landing destinations are missing.');
+requireCondition(lab.includes('1 - 0.006 * smoothStep') && lab.includes('finalShadowOpacity * separation'), 'F placement scale or shadow choreography is missing.');
+requireCondition(lab.includes('Home 0.982') && lab.includes('Surface {variant === \'F2\' ? \'0.994→1\' : \'1.000\'}'), 'F requested comparison metrics are missing.');
+requireCondition(lab.includes('(progress.value - 0.72) / 0.18') && lab.includes('(progress.value - 0.76) / 0.18') && lab.includes('(progress.value - 0.8) / 0.18'), 'Focus Rise content reveal is not synchronized after 70% travel.');
+requireCondition(d4Shared.includes('subdivideD3ContourToD4') && d4Shared.includes('splitCubicHalf'), 'D4 does not use exact De Casteljau subdivision of D3.');
+requireCondition(d4Shared.includes('smootherStep((p - 0.30) / 0.10)') && d4Shared.includes('if (p <= 0.30) return subdividedD3'), 'D4 shoulder activation does not preserve exact D3 through 30%.');
+requireCondition(d4Shared.includes('powerEase(local(progress, 0.18, 0.76), 2.15)') && d4Shared.includes('powerEase(local(progress, 0.15, 0.74), 2.3)'), 'D4 N1/N11 easing differs from the approved values.');
+requireCondition(d4Shared.includes('0.06 * smoothStep((progress - 0.45) / (0.62 - 0.45))') && d4Shared.includes('smoothStep((progress - 0.62) / (0.96 - 0.62))'), 'D4 destination convergence differs from the approved formula.');
+requireCondition(morphCanvas.includes("debugGeometry?: 'D3' | 'D4'") && morphCanvas.includes('buildD4AnchoredUnfurlPath') && morphCanvas.includes("debugGeometry === 'D3'"), 'Archived D3/D4 comparison geometry is unavailable to the dev study.');
+requireCondition(!app.includes("import { NewGoalMorphCanvas }") && !app.includes('<NewGoalMorphCanvas'), 'The dev-only D3/D4 study is still participating in production.');
+
+console.log('New Goal Motion Lab validation passed.');

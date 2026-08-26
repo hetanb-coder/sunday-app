@@ -19,6 +19,7 @@ import {
   Activity,
 } from 'lucide-react';
 import { useWeave } from '../context/WeaveContext';
+import { getCategoryColors } from '../theme';
 
 export const DashboardScreen: React.FC = () => {
   const { tasks, isPro, setActiveTab, setIsNewTaskModalOpen } = useWeave();
@@ -208,10 +209,10 @@ export const DashboardScreen: React.FC = () => {
 
         <div className="space-y-2.5">
           {[
-            { label: 'Work & Projects', cat: 'work', color: 'bg-blue-500' },
-            { label: 'Personal & Desk', cat: 'personal', color: 'bg-[#FF7A59]' },
-            { label: 'Health & Mind', cat: 'health', color: 'bg-emerald-500' },
-            { label: 'Creative & Design', cat: 'creative', color: 'bg-purple-500' },
+            { label: 'Work & Projects', cat: 'work' },
+            { label: 'Personal & Desk', cat: 'personal' },
+            { label: 'Health & Mind', cat: 'health' },
+            { label: 'Creative & Design', cat: 'creative' },
           ].map((item, idx) => {
             const count = categoryCounts[item.cat] || 0;
             const pct = totalTasks > 0 ? Math.round((count / totalTasks) * 100) : 0;
@@ -227,7 +228,8 @@ export const DashboardScreen: React.FC = () => {
                     initial={{ width: 0 }}
                     animate={{ width: `${pct}%` }}
                     transition={{ duration: 0.5, delay: idx * 0.08 }}
-                    className={`h-full ${item.color} rounded-full`}
+                    className="h-full rounded-full"
+                    style={{ backgroundColor: getCategoryColors(item.cat).accent }}
                   />
                 </div>
               </div>
