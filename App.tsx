@@ -1761,6 +1761,8 @@ function NewGoalDueDatePickerSheet({
             </AnimatedReanimated.View>
           )}
 
+          </ScrollView>
+
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={hasDueDate ? 'Set due date' : 'Set no due date'}
@@ -1773,7 +1775,6 @@ function NewGoalDueDatePickerSheet({
           >
             <Text style={styles.secondarySheetCtaText}>SET DUE DATE</Text>
           </Pressable>
-          </ScrollView>
         </AnimatedReanimated.View>
         </Animated.View>
       </View>
