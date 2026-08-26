@@ -74,6 +74,9 @@ requireCondition(modal.includes("...(transitionSheetFrame ? { height: '100%' as 
 
 requireCondition(chooser.includes('Doing this') && chooser.includes('I’m doing this for myself.') && chooser.includes("We're working toward this together.") && chooser.includes('I’m doing this, with someone in my corner.') && chooser.includes('CONTINUE'), 'Locked relationship choices changed.');
 requireCondition(due.includes('selectQuickDate') && due.includes('normalizeDueDate(selectedDate, hasTime)') && due.includes('sameLocalDay(date, selectedDate)') && due.includes('SET DUE DATE'), 'Locked synchronized Due Date behavior changed.');
+requireCondition(!due.includes('<Modal') && !chooser.includes('<Modal') && due.includes('styles.newGoalChildSheetRoot') && chooser.includes('styles.newGoalChildSheetRoot'), 'New Goal child sheets crossed a native Modal boundary.');
+requireCondition(due.includes('toValue: viewportHeight') && chooser.includes('toValue: viewportHeight') && due.includes('opacity: backdropOpacity') && chooser.includes('opacity: backdropOpacity'), 'Child sheet dismissal or backdrop continuity is incomplete.');
+requireCondition(modal.includes('dismissRequest={dueDismissRequest}') && modal.includes('dismissRequest={togetherDismissRequest}') && modal.includes('if (duePickerOpen)') && modal.includes('if (togetherPickerOpen)'), 'System dismissal is not routed through the active child sheet lifecycle.');
 requireCondition(source.includes("'Goal created'"), 'Creation confirmation changed.');
 
 let state: 'closed' | 'preparingOpen' | 'opening' | 'open' | 'closing' | 'handoffToFab' = 'closed';

@@ -1377,18 +1377,21 @@ function DueDatePickerSheet({
 
 function NewGoalDueDatePickerSheet({
   visible,
+  dismissRequest,
   dueAt,
   dueHasTime,
   onChange,
   onClose,
 }: {
   visible: boolean;
+  dismissRequest: number;
   dueAt?: string;
   dueHasTime: boolean;
   onChange: (dueAt?: string, dueHasTime?: boolean) => void;
   onClose: () => void;
 }) {
   const insets = useSafeAreaInsets();
+  const { height: viewportHeight } = useWindowDimensions();
   const initialDate = dueAt ? new Date(dueAt) : addLocalDays(new Date(), 1);
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [hasTime, setHasTime] = useState(dueHasTime);
@@ -1397,7 +1400,8 @@ function NewGoalDueDatePickerSheet({
   const [visibleMonth, setVisibleMonth] = useState(
     new Date(initialDate.getFullYear(), initialDate.getMonth(), 1)
   );
-  const sheetY = useRef(new Animated.Value(28)).current;
+  const sheetY = useRef(new Animated.Value(viewportHeight)).current;
+  const backdropOpacity = useRef(new Animated.Value(0)).current;
   const closingRef = useRef(false);
 
   useEffect(() => {
@@ -1411,30 +1415,51 @@ function NewGoalDueDatePickerSheet({
     setPickerMode('quick');
     setVisibleMonth(new Date(nextDate.getFullYear(), nextDate.getMonth(), 1));
     closingRef.current = false;
-    sheetY.setValue(28);
-    Animated.timing(sheetY, {
-      toValue: 0,
-      duration: 220,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
-  }, [visible]);
-
-  if (!visible) return null;
+    sheetY.setValue(viewportHeight);
+    backdropOpacity.setValue(0);
+    Animated.parallel([
+      Animated.timing(sheetY, {
+        toValue: 0,
+        duration: 240,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(backdropOpacity, {
+        toValue: 1,
+        duration: 180,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [backdropOpacity, sheetY, viewportHeight, visible]);
 
   const closeSurface = () => {
     if (closingRef.current) return;
     closingRef.current = true;
-    Animated.timing(sheetY, {
-      toValue: 28,
-      duration: 170,
-      easing: Easing.in(Easing.cubic),
-      useNativeDriver: true,
-    }).start(({ finished }) => {
+    Animated.parallel([
+      Animated.timing(sheetY, {
+        toValue: viewportHeight,
+        duration: 240,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(backdropOpacity, {
+        toValue: 0,
+        duration: 200,
+        easing: Easing.in(Easing.quad),
+        useNativeDriver: true,
+      }),
+    ]).start(({ finished }) => {
       if (finished) onClose();
       closingRef.current = false;
     });
   };
+
+  useEffect(() => {
+    if (visible && dismissRequest > 0) closeSurface();
+  }, [dismissRequest]);
+
+  if (!visible) return null;
 
   const updateDraft = (date: Date, nextHasTime: boolean) => {
     setSelectedDate(date);
@@ -1486,19 +1511,14 @@ function NewGoalDueDatePickerSheet({
   };
 
   return (
-    <Modal
-      transparent
-      visible
-      animationType="none"
-      statusBarTranslucent
-      onRequestClose={closeSurface}
-    >
-      <View style={styles.duePickerRoot}>
-        <Pressable
-          accessibilityLabel="Close due date picker"
-          style={styles.duePickerBackdrop}
-          onPress={closeSurface}
-        />
+      <View style={styles.newGoalChildSheetRoot}>
+        <Animated.View style={[styles.duePickerBackdrop, { opacity: backdropOpacity }]}>
+          <Pressable
+            accessibilityLabel="Close due date picker"
+            style={StyleSheet.absoluteFill}
+            onPress={closeSurface}
+          />
+        </Animated.View>
         <Animated.View
           style={[
             styles.duePickerMotionShell,
@@ -1744,7 +1764,6 @@ function NewGoalDueDatePickerSheet({
         </AnimatedReanimated.View>
         </Animated.View>
       </View>
-    </Modal>
   );
 }
 
@@ -1843,6 +1862,7 @@ function TogetherRow({
 
 function TogetherChooserSheet({
   visible,
+  dismissRequest,
   value,
   personId,
   connections,
@@ -1851,6 +1871,7 @@ function TogetherChooserSheet({
   onClose,
 }: {
   visible: boolean;
+  dismissRequest: number;
   value: GoalCollaborationMode;
   personId: string | null;
   connections: Connection[];
@@ -1859,7 +1880,8 @@ function TogetherChooserSheet({
   onClose: () => void;
 }) {
   const insets = useSafeAreaInsets();
-  const sheetY = useRef(new Animated.Value(36)).current;
+  const { height: viewportHeight } = useWindowDimensions();
+  const sheetY = useRef(new Animated.Value(viewportHeight)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
   const closingRef = useRef(false);
   const [personMode, setPersonMode] = useState<
@@ -1872,12 +1894,12 @@ function TogetherChooserSheet({
     closingRef.current = false;
     setPersonMode(null);
     setDraftMode(value);
-    sheetY.setValue(36);
+    sheetY.setValue(viewportHeight);
     backdropOpacity.setValue(0);
     Animated.parallel([
       Animated.timing(sheetY, {
         toValue: 0,
-        duration: 220,
+        duration: 240,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
@@ -1888,9 +1910,7 @@ function TogetherChooserSheet({
         useNativeDriver: true,
       }),
     ]).start();
-  }, [backdropOpacity, sheetY, visible]);
-
-  if (!visible) return null;
+  }, [backdropOpacity, sheetY, viewportHeight, visible]);
 
   const dismiss = (
     selection?: { mode: GoalCollaborationMode; userId: string | null }
@@ -1899,14 +1919,14 @@ function TogetherChooserSheet({
     closingRef.current = true;
     Animated.parallel([
       Animated.timing(sheetY, {
-        toValue: 36,
-        duration: 170,
+        toValue: viewportHeight,
+        duration: 240,
         easing: Easing.in(Easing.cubic),
         useNativeDriver: true,
       }),
       Animated.timing(backdropOpacity, {
         toValue: 0,
-        duration: 150,
+        duration: 200,
         easing: Easing.in(Easing.quad),
         useNativeDriver: true,
       }),
@@ -1917,6 +1937,12 @@ function TogetherChooserSheet({
       onClose();
     });
   };
+
+  useEffect(() => {
+    if (visible && dismissRequest > 0) dismiss();
+  }, [dismissRequest]);
+
+  if (!visible) return null;
 
   const choices: Array<{
     mode: GoalCollaborationMode;
@@ -1941,14 +1967,7 @@ function TogetherChooserSheet({
   ];
 
   return (
-    <Modal
-      transparent
-      visible
-      animationType="none"
-      statusBarTranslucent
-      onRequestClose={() => dismiss()}
-    >
-      <View style={styles.duePickerRoot}>
+      <View style={styles.newGoalChildSheetRoot}>
         <Animated.View
           style={[
             styles.togetherChooserBackdrop,
@@ -2126,7 +2145,6 @@ function TogetherChooserSheet({
           )}
         </Animated.View>
       </View>
-    </Modal>
   );
 }
 
@@ -7887,6 +7905,8 @@ function NewGoalModal({
   }, [setTransitionState]);
   const [duePickerOpen, setDuePickerOpen] = useState(false);
   const [togetherPickerOpen, setTogetherPickerOpen] = useState(false);
+  const [dueDismissRequest, setDueDismissRequest] = useState(0);
+  const [togetherDismissRequest, setTogetherDismissRequest] = useState(0);
   const lifecycleRef = useRef(0);
   const submittingSessionRef = useRef(session);
   const openFrameRef = useRef<number | null>(null);
@@ -9205,7 +9225,17 @@ Animated.timing(
       visible={modalMounted}
       animationType="none"
       statusBarTranslucent
-      onRequestClose={() => dismiss('system')}
+      onRequestClose={() => {
+        if (duePickerOpen) {
+          setDueDismissRequest((request) => request + 1);
+          return;
+        }
+        if (togetherPickerOpen) {
+          setTogetherDismissRequest((request) => request + 1);
+          return;
+        }
+        dismiss('system');
+      }}
       onShow={handleNativeModalShow}
       onDismiss={onNativeModalDismissed}
     >
@@ -10096,6 +10126,7 @@ opacity: submitPreviewOpacity,
 )}
     <NewGoalDueDatePickerSheet
       visible={duePickerOpen}
+      dismissRequest={dueDismissRequest}
       dueAt={dueAt}
       dueHasTime={dueHasTime}
       onChange={setDue}
@@ -10103,6 +10134,7 @@ opacity: submitPreviewOpacity,
     />
     <TogetherChooserSheet
       visible={togetherPickerOpen}
+      dismissRequest={togetherDismissRequest}
       value={collaborationMode}
       personId={collaborationPersonId}
       connections={connections}
@@ -11860,6 +11892,12 @@ const styles = StyleSheet.create({
   duePickerRoot: {
     flex: 1,
     justifyContent: 'flex-end',
+  },
+
+  newGoalChildSheetRoot: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'flex-end',
+    zIndex: 50,
   },
 
   duePickerBackdrop: {
