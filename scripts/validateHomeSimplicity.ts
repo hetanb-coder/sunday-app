@@ -37,11 +37,11 @@ requireCondition(source.includes("!['you', 'undefined', 'null'].includes") && so
 requireCondition(focus.includes('const nextStep = task.microSteps.find'), 'Current Focus does not choose one incomplete step.');
 requireCondition(focus.includes('toggleStep(task.id, nextStep.id)'), 'Current Focus is not directly actionable.');
 requireCondition(source.includes('function GoalProgressControl') && source.includes('done / total') && source.includes('total > 0'), 'Current Focus progress ring is not derived safely from real step progress.');
-requireCondition(source.includes('strokeDashoffset={strokeDashoffset}') && source.includes('stroke={colors.coralPrimary}'), 'Current Focus progress ring is missing the Sunday coral progress arc.');
+requireCondition(source.includes('strokeDashoffset={strokeDashoffset}') && source.includes('stroke={colors.surfaceWarm}') && source.includes('stroke="rgba(255,249,245,0.38)"'), 'Current Focus progress ring is missing the warm-white completion system.');
 requireCondition(!focus.includes('task.microSteps.map'), 'Current Focus still renders every microtask.');
 requireCondition(!focus.includes('heroDepth') && !focus.includes('heroGlow'), 'Current Focus still uses the old card-like decoration.');
 requireCondition(focus.includes('getCategoryColors(task.category)') && focus.includes('outputRange: [previousFocusSurface.current, c.surface]'), 'Current Focus hero is not category-responsive with a safe fallback.');
-requireCondition(focus.includes('backgroundColor: focusSurface') && focus.includes("borderTopColor: `${c.strong}26`") && source.includes('borderTopWidth: StyleSheet.hairlineWidth') && !source.includes("backgroundColor: '#FFF9F2'"), 'Current Focus is missing the category hero or borderless Next Step divider.');
+requireCondition(focus.includes('backgroundColor: focusSurface') && focus.includes("borderTopColor: `${c.strong}52`") && source.includes('borderTopWidth: StyleSheet.hairlineWidth') && !source.includes("backgroundColor: '#FFF9F2'"), 'Current Focus is missing the category hero or borderless Next Step divider.');
 requireCondition(source.includes('paddingTop: 31'), 'Home is missing the approved additional top breathing room.');
 requireCondition(focus.includes('<GoalProgressControl') && focus.includes('HomeRelationshipBadge'), 'Editorial Next Step composition is incomplete.');
 requireCondition(!focus.includes('ADHD GUARDRAIL'), 'Current Focus still renders the guardrail block.');

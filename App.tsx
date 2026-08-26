@@ -4587,7 +4587,7 @@ function GoalProgressControl({
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="#E9DDD7"
+          stroke="rgba(255,249,245,0.38)"
           strokeWidth={strokeWidth}
         />
         <SvgCircle
@@ -4595,7 +4595,7 @@ function GoalProgressControl({
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke={colors.coralPrimary}
+          stroke={colors.surfaceWarm}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeDasharray={`${circumference} ${circumference}`}
@@ -4606,7 +4606,7 @@ function GoalProgressControl({
       <View style={[styles.focusNextCheck, acknowledging && styles.focusNextCheckAcknowledging]}>
         <Check
           size={17}
-          color={acknowledging ? colors.onStrong : colors.coralPrimary}
+          color={colors.surfaceWarm}
           strokeWidth={2.2}
         />
       </View>
@@ -4877,7 +4877,7 @@ function Focus({
               key={nextStep.id}
               entering={FadeInDown.duration(reducedMotion ? motion.duration.reduced : motion.duration.reveal)}
               layout={LinearTransition.duration(reducedMotion ? motion.duration.reduced : motion.duration.move)}
-              style={[styles.focusNextStep, { borderTopColor: `${c.strong}26` }]}
+              style={[styles.focusNextStep, { borderTopColor: `${c.strong}52` }]}
             >
               <Pressable
                 accessibilityRole="checkbox"
@@ -10707,7 +10707,7 @@ const styles = StyleSheet.create({
   },
 
   focusNextCheckAcknowledging: {
-    backgroundColor: colors.coralPrimary,
+    backgroundColor: 'rgba(255,249,245,0.2)',
   },
 
   editorialDue: {
