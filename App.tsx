@@ -73,6 +73,7 @@ import AnimatedReanimated, {
   withTiming,
 } from 'react-native-reanimated';
 import type { SharedValue } from 'react-native-reanimated';
+import Svg, { Circle as SvgCircle } from 'react-native-svg';
 import {
   makeImageFromView,
 } from '@shopify/react-native-skia';
@@ -4484,8 +4485,12 @@ function CompactGoalPreview({
         pressed && styles.compactGoalPreviewPressed,
       ]}
     >
+      <View style={[styles.compactGoalIndicator, { backgroundColor: theme.accent }]} />
       <View style={styles.compactGoalCopy}>
-        <Text numberOfLines={2} style={styles.compactGoalTitle}>{task.title}</Text>
+        <View style={styles.compactGoalTitleRow}>
+          <Text numberOfLines={2} style={styles.compactGoalTitle}>{task.title}</Text>
+          <Text style={styles.compactGoalTime}>{task.minutes}m</Text>
+        </View>
         <View style={styles.compactGoalMeta}>
           <Text numberOfLines={1} style={styles.compactGoalProgress}>
             {theme.name} · {total > 0 ? `${done} of ${total} steps` : 'First steps are on the way'}
@@ -4511,7 +4516,7 @@ function CompactGoalPreview({
           <Trash2 size={15} color="#A59DA8" />
         </Pressable>
       ) : null}
-      <ArrowRight size={20} color={colors.coralPrimary} strokeWidth={2.2} />
+      <ArrowRight size={17} color={colors.coralPrimary} strokeWidth={2.1} />
     </Pressable>
   );
 }
@@ -4542,6 +4547,59 @@ function HomeRelationshipBadge({ context }: { context: HomeRelationshipContext }
       <Text style={styles.homeRelationshipText}>
         {context.mode === 'together' ? 'Together' : 'Supported'}
       </Text>
+    </View>
+  );
+}
+
+function GoalProgressControl({
+  done,
+  total,
+  acknowledging,
+}: {
+  done: number;
+  total: number;
+  acknowledging: boolean;
+}) {
+  const size = 44;
+  const strokeWidth = 3;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const progress = total > 0
+    ? Math.min(1, Math.max(0, done / total))
+    : 0;
+  const strokeDashoffset = circumference * (1 - progress);
+
+  return (
+    <View style={styles.focusNextCircle}>
+      <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
+        <SvgCircle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="#E9DDD7"
+          strokeWidth={strokeWidth}
+        />
+        <SvgCircle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke={colors.coralPrimary}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeDasharray={`${circumference} ${circumference}`}
+          strokeDashoffset={strokeDashoffset}
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        />
+      </Svg>
+      <View style={[styles.focusNextCheck, acknowledging && styles.focusNextCheckAcknowledging]}>
+        <Check
+          size={17}
+          color={acknowledging ? colors.onStrong : colors.coralPrimary}
+          strokeWidth={2.2}
+        />
+      </View>
     </View>
   );
 }
@@ -4827,16 +4885,11 @@ function Focus({
                 }}
                 style={({ pressed }) => [styles.focusNextAction, pressed && styles.pressed]}
               >
-                <View
-                  style={[
-                    styles.focusNextCircle,
-                    acknowledgingStepId === nextStep.id && styles.focusNextCircleAcknowledging,
-                  ]}
-                >
-                  {acknowledgingStepId === nextStep.id && (
-                    <Check size={12} color={colors.surface} strokeWidth={3} />
-                  )}
-                </View>
+                <GoalProgressControl
+                  done={done}
+                  total={task.microSteps.length}
+                  acknowledging={acknowledgingStepId === nextStep.id}
+                />
                 <View style={styles.focusNextCopy}>
                   <Text style={styles.focusNextLabel}>NEXT STEP</Text>
                   <Text
@@ -10319,13 +10372,13 @@ const styles = StyleSheet.create({
   },
 
   header: {
-    marginBottom: 34,
+    marginBottom: 28,
   },
 
   dailyHeader: {
     fontSize: 24,
     lineHeight: 29,
-    fontWeight: '900',
+    fontWeight: '800',
     color: colors.textPrimary,
     letterSpacing: -0.8,
   },
@@ -10421,7 +10474,7 @@ const styles = StyleSheet.create({
   },
 
   focus: {
-    marginBottom: 36,
+    marginBottom: 28,
   },
 
   focusHead: {
@@ -10430,7 +10483,7 @@ const styles = StyleSheet.create({
       'space-between',
     alignItems: 'center',
     paddingHorizontal: 2,
-    marginBottom: 16,
+    marginBottom: 12,
   },
 
   focusHeadLeft: {
@@ -10450,7 +10503,7 @@ const styles = StyleSheet.create({
   focusLabel: {
     color: '#6B5550',
     fontSize: 10,
-    fontWeight: '900',
+    fontWeight: '800',
     letterSpacing: 1.45,
   },
 
@@ -10519,7 +10572,7 @@ const styles = StyleSheet.create({
 
   badgeText: {
     fontSize: 8.5,
-    fontWeight: '900',
+    fontWeight: '700',
     letterSpacing: 0.65,
     color: colors.textPrimary,
     flexShrink: 1,
@@ -10561,11 +10614,11 @@ const styles = StyleSheet.create({
 
   heroTitle: {
     color: '#2D2926',
-    fontSize: 34,
-    lineHeight: 40,
-    fontWeight: '900',
-    letterSpacing: -1.05,
-    marginBottom: 18,
+    fontSize: 28,
+    lineHeight: 34,
+    fontWeight: '800',
+    letterSpacing: -0.7,
+    marginBottom: 14,
   },
 
   focusContextRow: {
@@ -10574,27 +10627,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 8,
-    marginBottom: 18,
+    marginBottom: 14,
   },
 
   focusProgress: {
     flexShrink: 1,
     fontSize: 11,
     lineHeight: 16,
-    fontWeight: '700',
+    fontWeight: '600',
   },
 
   focusNextStep: {
     borderTopWidth: 1,
     borderBottomWidth: 1,
     borderColor: '#EEE4DF',
-    paddingVertical: 18,
+    paddingVertical: 15,
   },
 
   focusNextLabel: {
     color: '#6B5550',
     fontSize: 9,
-    fontWeight: '900',
+    fontWeight: '800',
     letterSpacing: 0.8,
     marginBottom: 4,
   },
@@ -10602,16 +10655,14 @@ const styles = StyleSheet.create({
   focusNextAction: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 14,
+    gap: 12,
     minHeight: 48,
   },
 
   focusNextCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: colors.coralPrimary,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
@@ -10619,9 +10670,9 @@ const styles = StyleSheet.create({
 
   focusNextText: {
     color: '#2D2926',
-    fontSize: 16,
-    lineHeight: 22,
-    fontWeight: '500',
+    fontSize: 15,
+    lineHeight: 21,
+    fontWeight: '400',
   },
 
   focusNextCopy: {
@@ -10629,7 +10680,15 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
 
-  focusNextCircleAcknowledging: {
+  focusNextCheck: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  focusNextCheckAcknowledging: {
     backgroundColor: colors.coralPrimary,
   },
 
@@ -10911,7 +10970,7 @@ const styles = StyleSheet.create({
   },
 
   otherGoalsSection: {
-    marginBottom: 12,
+    marginBottom: 8,
   },
 
   otherGoalsHeader: {
@@ -10924,7 +10983,7 @@ const styles = StyleSheet.create({
   otherGoalsTitle: {
     color: '#6B5550',
     fontSize: 10,
-    fontWeight: '900',
+    fontWeight: '800',
     letterSpacing: 0.9,
   },
 
@@ -10938,7 +10997,7 @@ const styles = StyleSheet.create({
   otherGoalsViewAllText: {
     color: colors.coralStrong,
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '700',
   },
 
   otherGoalPreviews: {
@@ -10947,10 +11006,10 @@ const styles = StyleSheet.create({
   },
 
   compactGoalPreview: {
-    paddingVertical: 18,
+    paddingVertical: 13,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    gap: 11,
     borderBottomWidth: 1,
     borderBottomColor: '#EEE4DF',
   },
@@ -10968,23 +11027,45 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
 
+  compactGoalIndicator: {
+    width: 4,
+    height: 34,
+    borderRadius: 3,
+    flexShrink: 0,
+  },
+
+  compactGoalTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+
   compactGoalTitle: {
     color: '#2D2926',
-    fontSize: 20,
-    lineHeight: 27,
-    fontWeight: '900',
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: '700',
+    flex: 1,
+  },
+
+  compactGoalTime: {
+    color: '#9A8781',
+    fontSize: 9.5,
+    lineHeight: 15,
+    fontWeight: '600',
+    flexShrink: 0,
   },
 
   compactGoalProgress: {
     color: '#765F59',
     fontSize: 11,
     lineHeight: 16,
-    fontWeight: '500',
+    fontWeight: '400',
     flexShrink: 1,
   },
 
   compactGoalMeta: {
-    marginTop: 4,
+    marginTop: 3,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,

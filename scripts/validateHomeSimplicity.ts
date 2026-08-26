@@ -35,9 +35,11 @@ requireCondition(home.includes('homeGreeting(currentProfileName)') && home.inclu
 requireCondition(source.includes("!['you', 'undefined', 'null'].includes") && source.includes("usableFirstName ? `, ${usableFirstName}` : ''"), 'Greeting fallback can render an unusable profile name.');
 requireCondition(focus.includes('const nextStep = task.microSteps.find'), 'Current Focus does not choose one incomplete step.');
 requireCondition(focus.includes('toggleStep(task.id, nextStep.id)'), 'Current Focus is not directly actionable.');
+requireCondition(source.includes('function GoalProgressControl') && source.includes('done / total') && source.includes('total > 0'), 'Current Focus progress ring is not derived safely from real step progress.');
+requireCondition(source.includes('strokeDashoffset={strokeDashoffset}') && source.includes('stroke={colors.coralPrimary}'), 'Current Focus progress ring is missing the Sunday coral progress arc.');
 requireCondition(!focus.includes('task.microSteps.map'), 'Current Focus still renders every microtask.');
 requireCondition(!focus.includes('heroDepth') && !focus.includes('heroGlow'), 'Current Focus still uses the old card-like decoration.');
-requireCondition(focus.includes('focusNextCircle') && focus.includes('HomeRelationshipBadge'), 'Editorial Next Step composition is incomplete.');
+requireCondition(focus.includes('<GoalProgressControl') && focus.includes('HomeRelationshipBadge'), 'Editorial Next Step composition is incomplete.');
 requireCondition(!focus.includes('ADHD GUARDRAIL'), 'Current Focus still renders the guardrail block.');
 requireCondition(focus.includes('relationshipContext'), 'Current Focus does not expose relationship context.');
 requireCondition(!focus.includes('1 goal at a time'), 'Current Focus still renders redundant explanatory copy.');
@@ -47,6 +49,7 @@ requireCondition(focus.includes('allDone && task.microSteps.length > 0'), 'Goal 
 requireCondition(focus.includes('task.minutes') && focus.includes('duePresentation'), 'Current Focus metadata is incomplete.');
 requireCondition(source.includes('focusNextCircle') && source.includes('flexShrink: 0'), 'Current Focus completion circle can still shrink or clip.');
 requireCondition(source.includes('<ArrowRight') && source.includes('color={colors.coralPrimary}'), 'Other Goals are missing the editorial coral arrow.');
+requireCondition(source.includes('styles.compactGoalIndicator') && source.includes('backgroundColor: theme.accent'), 'Other Goals are missing real category-color accents.');
 requireCondition(source.includes('canDelete={canDeleteTask(task)}') && source.includes('requestDeleteGoal(task.id)'), 'View all does not preserve permission-aware goal deletion.');
 requireCondition(source.includes('connection.userId === otherUserId') && source.includes('connection.displayName'), 'Home relationship labels do not resolve from connection display names.');
 requireCondition(card.includes('relationshipLabel'), 'Legacy handoff cards no longer preserve relationship context.');
