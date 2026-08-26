@@ -4877,7 +4877,7 @@ function Focus({
               key={nextStep.id}
               entering={FadeInDown.duration(reducedMotion ? motion.duration.reduced : motion.duration.reveal)}
               layout={LinearTransition.duration(reducedMotion ? motion.duration.reduced : motion.duration.move)}
-              style={styles.focusNextStep}
+              style={[styles.focusNextStep, { borderTopColor: `${c.strong}26` }]}
             >
               <Pressable
                 accessibilityRole="checkbox"
@@ -4901,10 +4901,11 @@ function Focus({
                   acknowledging={acknowledgingStepId === nextStep.id}
                 />
                 <View style={styles.focusNextCopy}>
-                  <Text style={styles.focusNextLabel}>NEXT STEP</Text>
+                  <Text style={[styles.focusNextLabel, { color: c.strong }]}>NEXT STEP</Text>
                   <Text
                     style={[
                       styles.focusNextText,
+                      { color: c.onSurface },
                       acknowledgingStepId === nextStep.id && styles.heroStrike,
                     ]}
                   >
@@ -10659,16 +10660,11 @@ const styles = StyleSheet.create({
   },
 
   focusNextStep: {
-    borderWidth: 1,
-    borderColor: '#E9D5CA',
-    borderRadius: 16,
-    backgroundColor: '#FFF9F2',
-    paddingHorizontal: 11,
-    paddingVertical: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: 14,
   },
 
   focusNextLabel: {
-    color: '#6B5550',
     fontSize: 9,
     fontWeight: '800',
     letterSpacing: 0.8,
@@ -10692,7 +10688,6 @@ const styles = StyleSheet.create({
   },
 
   focusNextText: {
-    color: '#2D2926',
     fontSize: 15,
     lineHeight: 21,
     fontWeight: '400',
