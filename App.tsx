@@ -173,6 +173,8 @@ type HomeRelationshipContext = {
   avatars: Array<{ initials: string; color: string }>;
 };
 
+const HOME_CANVAS = '#F7F1E8';
+
 const homeGreeting = (displayName?: string, now = new Date()) => {
   const hour = now.getHours();
   const daypart = hour >= 5 && hour < 12
@@ -3311,9 +3313,9 @@ const [
     ]).start();
   }, [tab, reducedMotion, screenOpacity, screenTranslateY]);
   return (
-    <View style={styles.safe}>
+    <View style={[styles.safe, tab === 'home' && styles.homeCanvas]}>
     <SafeAreaView
-      style={styles.safe}
+      style={[styles.safe, tab === 'home' && styles.homeCanvas]}
       edges={['top', 'left', 'right']}
     >
       <AnimatedReanimated.View style={[{ flex: 1 }, newGoalInteractiveDepthStyle]}>
@@ -3362,6 +3364,7 @@ const [
   {tab === 'home' ? (
        <ScrollView
        ref={homeScrollRef}
+       style={styles.homeCanvas}
      
        showsVerticalScrollIndicator={
          false
@@ -4516,7 +4519,7 @@ function CompactGoalPreview({
           <Trash2 size={15} color="#A59DA8" />
         </Pressable>
       ) : null}
-      <ArrowRight size={17} color={colors.coralPrimary} strokeWidth={2.1} />
+      <ArrowRight size={17} color="#A89188" strokeWidth={2.1} />
     </Pressable>
   );
 }
@@ -4793,14 +4796,11 @@ function Focus({
     <View style={styles.focus}>
       <View style={styles.focusHead}>
         <View style={styles.focusHeadLeft}>
+          <View style={styles.focusLabelMark}>
+            <Flame size={11} color={colors.coralStrong} fill={colors.coralStrong} />
+          </View>
           <Text style={styles.focusLabel}>
             CURRENT FOCUS
-          </Text>
-        </View>
-        <View style={[styles.badge, { backgroundColor: c.surfaceSoft }]}>
-          <View style={[styles.badgeDot, { backgroundColor: c.accent }]} />
-          <Text numberOfLines={1} style={[styles.badgeText, { color: c.strong }]}>
-            {c.name} · {task.minutes} min
           </Text>
         </View>
       </View>
@@ -4814,9 +4814,7 @@ function Focus({
           ],
         }}
       >
-        <Animated.View
-          style={styles.heroElevation}
-        >
+        <Animated.View style={[styles.heroElevation, { backgroundColor: focusSurface }]}>
         <Animated.View
           style={[
             styles.heroMotionSurface,
@@ -4826,13 +4824,6 @@ function Focus({
             },
           ]}
         >
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            styles.heroAtmosphere,
-            { backgroundColor: focusSurface },
-          ]}
-        />
         <AnimatedReanimated.View style={pressStyle}>
         <Pressable
           onPress={open}
@@ -4842,13 +4833,13 @@ function Focus({
             styles.hero,
           ]}
         >
-          <Text style={[styles.heroTitle, { color: c.onSurface }]}> 
-            {task.title}
-          </Text>
-          <View style={styles.focusContextRow}>
-            <Text style={[styles.focusProgress, { color: c.strong }]}>
-              {done} of {task.microSteps.length} steps
-            </Text>
+          <View style={styles.heroTop}>
+            <View style={[styles.badge, { backgroundColor: c.surfaceSoft }]}>
+              <View style={[styles.badgeDot, { backgroundColor: c.accent }]} />
+              <Text numberOfLines={1} style={[styles.badgeText, { color: c.strong }]}>
+                {c.name} · {task.minutes} min
+              </Text>
+            </View>
             {duePresentation ? (
               <View style={styles.editorialDue}>
                 <CalendarDays size={12} color={c.strong} />
@@ -4857,6 +4848,14 @@ function Focus({
                 </Text>
               </View>
             ) : null}
+          </View>
+          <Text style={[styles.heroTitle, { color: c.onSurface }]}>
+            {task.title}
+          </Text>
+          <View style={styles.focusContextRow}>
+            <Text style={[styles.focusProgress, { color: c.strong }]}>
+              {done} of {task.microSteps.length} steps
+            </Text>
             {!nextStep && relationshipContext ? (
               <HomeRelationshipBadge context={relationshipContext} />
             ) : null}
@@ -10356,6 +10355,9 @@ const styles = StyleSheet.create({
   scroll: {
     paddingBottom: 12,
   },
+  homeCanvas: {
+    backgroundColor: HOME_CANVAS,
+  },
   container: {
     width: '100%',
     maxWidth: 520,
@@ -10372,7 +10374,7 @@ const styles = StyleSheet.create({
   },
 
   header: {
-    marginBottom: 28,
+    marginBottom: 22,
   },
 
   dailyHeader: {
@@ -10474,7 +10476,7 @@ const styles = StyleSheet.create({
   },
 
   focus: {
-    marginBottom: 28,
+    marginBottom: 24,
   },
 
   focusHead: {
@@ -10483,13 +10485,22 @@ const styles = StyleSheet.create({
       'space-between',
     alignItems: 'center',
     paddingHorizontal: 2,
-    marginBottom: 12,
+    marginBottom: 9,
   },
 
   focusHeadLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
+    gap: 6,
+  },
+
+  focusLabelMark: {
+    width: 20,
+    height: 20,
+    borderRadius: 7,
+    backgroundColor: colors.coralWhisper,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   flame: {
@@ -10514,25 +10525,24 @@ const styles = StyleSheet.create({
   },
 
   hero: {
-    padding: 0,
+    overflow: 'hidden',
+    borderRadius: 23,
+    padding: 15,
   },
 
   heroElevation: {
     position: 'relative',
+    borderRadius: 23,
+    shadowColor: colors.warmShadow,
+    shadowOpacity: 0.035,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 1,
   },
 
   heroMotionSurface: {
     position: 'relative',
-  },
-
-  heroAtmosphere: {
-    position: 'absolute',
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    right: -110,
-    top: -90,
-    opacity: 0.1,
+    borderRadius: 23,
   },
 
   heroPressed: {
@@ -10549,7 +10559,7 @@ const styles = StyleSheet.create({
     justifyContent:
       'space-between',
     alignItems: 'center',
-    marginBottom: 14,
+    marginBottom: 10,
   },
 
   badge: {
@@ -10614,11 +10624,11 @@ const styles = StyleSheet.create({
 
   heroTitle: {
     color: '#2D2926',
-    fontSize: 28,
-    lineHeight: 34,
+    fontSize: 21,
+    lineHeight: 27,
     fontWeight: '800',
-    letterSpacing: -0.7,
-    marginBottom: 14,
+    letterSpacing: -0.35,
+    marginBottom: 9,
   },
 
   focusContextRow: {
@@ -10627,7 +10637,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 8,
-    marginBottom: 14,
+    marginBottom: 10,
   },
 
   focusProgress: {
@@ -10638,10 +10648,12 @@ const styles = StyleSheet.create({
   },
 
   focusNextStep: {
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: '#EEE4DF',
-    paddingVertical: 15,
+    borderWidth: 1,
+    borderColor: '#E9D5CA',
+    borderRadius: 16,
+    backgroundColor: '#FFF9F2',
+    paddingHorizontal: 11,
+    paddingVertical: 10,
   },
 
   focusNextLabel: {
