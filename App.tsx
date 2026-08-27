@@ -42,6 +42,7 @@ import {
   AppState,
   Alert,
   Easing,
+  FlatList,
   Keyboard,
   KeyboardAvoidingView,
   LayoutAnimation,
@@ -1409,6 +1410,7 @@ function NewGoalDueDatePickerSheet({
   visible,
   dismissRequest,
   dueAt,
+  dueHasTime,
   onChange,
   onClose,
 }: {
@@ -1424,37 +1426,46 @@ function NewGoalDueDatePickerSheet({
   const initialDate = dueAt ? new Date(dueAt) : addLocalDays(new Date(), 1);
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [hasDueDate, setHasDueDate] = useState(Boolean(dueAt));
-  const [visibleMonth, setVisibleMonth] = useState(
-    new Date(initialDate.getFullYear(), initialDate.getMonth(), 1)
-  );
-  const [incomingMonth, setIncomingMonth] = useState<Date | null>(null);
-  const [monthDirection, setMonthDirection] = useState<1 | -1>(1);
+
+  const today = useMemo(() => new Date(), []);
+  const MONTH_RANGE = 24;
+
+  const monthsData = useMemo(() => {
+    return Array.from({ length: MONTH_RANGE }).map((_, index) => {
+      const d = new Date(today.getFullYear(), today.getMonth() + index, 1);
+      return { key: `${d.getFullYear()}-${d.getMonth()}`, date: d };
+    });
+  }, [today]);
+
+  const [activeIndex, setActiveIndex] = useState(() => {
+    const initial = dueAt ? new Date(dueAt) : addLocalDays(today, 1);
+    return Math.max(0, Math.min(
+      (initial.getFullYear() - today.getFullYear()) * 12 + (initial.getMonth() - today.getMonth()),
+      MONTH_RANGE - 1
+    ));
+  });
+
+  const flatListRef = useRef<FlatList<any>>(null);
+  const calendarWidth = viewportWidth - 48;
+
   const sheetY = useRef(new Animated.Value(viewportHeight)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
-  const monthProgress = useRef(new Animated.Value(0)).current;
   const closingRef = useRef(false);
-  const monthAnimatingRef = useRef(false);
-  const visibleMonthRef = useRef(visibleMonth);
-  const monthAnimationFrameRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!visible) return;
     const nextDate = dueAt
       ? new Date(dueAt)
-      : addLocalDays(new Date(), 1);
-    const nextMonth = new Date(nextDate.getFullYear(), nextDate.getMonth(), 1);
+      : addLocalDays(today, 1);
     setSelectedDate(nextDate);
     setHasDueDate(Boolean(dueAt));
-    setVisibleMonth(nextMonth);
-    setIncomingMonth(null);
-    visibleMonthRef.current = nextMonth;
-    monthAnimatingRef.current = false;
-    if (monthAnimationFrameRef.current !== null) {
-      cancelAnimationFrame(monthAnimationFrameRef.current);
-      monthAnimationFrameRef.current = null;
-    }
-    monthProgress.stopAnimation();
-    monthProgress.setValue(0);
+
+    const initialTargetIndex = Math.max(0, Math.min(
+      (nextDate.getFullYear() - today.getFullYear()) * 12 + (nextDate.getMonth() - today.getMonth()),
+      MONTH_RANGE - 1
+    ));
+    setActiveIndex(initialTargetIndex);
+
     closingRef.current = false;
     sheetY.setValue(viewportHeight);
     backdropOpacity.setValue(0);
@@ -1472,7 +1483,7 @@ function NewGoalDueDatePickerSheet({
         useNativeDriver: true,
       }),
     ]).start();
-  }, [backdropOpacity, monthProgress, sheetY, viewportHeight, visible]);
+  }, [backdropOpacity, sheetY, viewportHeight, visible, dueAt, today]);
 
   const closeSurface = () => {
     if (closingRef.current) return;
@@ -1500,121 +1511,13 @@ function NewGoalDueDatePickerSheet({
     if (visible && dismissRequest > 0) closeSurface();
   }, [dismissRequest]);
 
-  useEffect(() => {
-    if (!incomingMonth && !monthAnimatingRef.current) {
-      monthProgress.setValue(0);
+  const handleScroll = useCallback((e: any) => {
+    const x = e.nativeEvent.contentOffset.x;
+    const index = Math.round(x / calendarWidth);
+    if (index >= 0 && index < MONTH_RANGE) {
+      setActiveIndex(index);
     }
-  }, [incomingMonth, monthProgress]);
-
-  const startMonthTransitionRef = useRef<((direction: 1 | -1) => void) | null>(null);
-  const swipeActiveDirectionRef = useRef<1 | -1 | 0>(0);
-  const lastProcessedDirectionRef = useRef<1 | -1 | 0>(0);
-
-  const calendarPanResponder = useMemo(
-    () =>
-      PanResponder.create({
-        onStartShouldSetPanResponder: () => false,
-        onMoveShouldSetPanResponder: (_event, gesture) =>
-          Math.abs(gesture.dx) > 15 && Math.abs(gesture.dx) > Math.abs(gesture.dy),
-        onPanResponderGrant: () => {
-          monthProgress.stopAnimation();
-          if (monthAnimationFrameRef.current !== null) {
-            cancelAnimationFrame(monthAnimationFrameRef.current);
-            monthAnimationFrameRef.current = null;
-          }
-          monthAnimatingRef.current = true;
-          swipeActiveDirectionRef.current = 0;
-          lastProcessedDirectionRef.current = 0;
-        },
-        onPanResponderMove: (_event, gesture) => {
-          const dx = gesture.dx;
-          const wantedDirection = dx < 0 ? 1 : -1;
-          
-          if (lastProcessedDirectionRef.current !== wantedDirection) {
-            lastProcessedDirectionRef.current = wantedDirection;
-            const currentMonth = visibleMonthRef.current;
-            const targetMonth = new Date(
-              currentMonth.getFullYear(),
-              currentMonth.getMonth() + wantedDirection,
-              1
-            );
-            const now = new Date();
-            const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-            
-            if (targetMonth < currentMonthStart) {
-              setIncomingMonth(null);
-              swipeActiveDirectionRef.current = 0;
-            } else {
-              setMonthDirection(wantedDirection);
-              setIncomingMonth(targetMonth);
-              swipeActiveDirectionRef.current = wantedDirection;
-            }
-          }
-
-          if (swipeActiveDirectionRef.current !== 0) {
-            const progress = Math.min(1, Math.max(0, Math.abs(dx) / viewportWidth));
-            monthProgress.setValue(progress);
-          } else {
-            monthProgress.setValue(0);
-          }
-        },
-        onPanResponderRelease: (_event, gesture) => {
-          const dx = gesture.dx;
-          const vx = gesture.vx;
-          const currentDirection = swipeActiveDirectionRef.current;
-          
-          if (currentDirection === 0) {
-            Animated.spring(monthProgress, {
-              toValue: 0,
-              stiffness: 420,
-              damping: 38,
-              overshootClamping: true,
-              useNativeDriver: true,
-            }).start(() => {
-              monthAnimatingRef.current = false;
-              setIncomingMonth(null);
-            });
-            return;
-          }
-
-          const isCommit = (currentDirection === 1 && (dx < -viewportWidth * 0.35 || vx < -0.8)) ||
-                           (currentDirection === -1 && (dx > viewportWidth * 0.35 || vx > 0.8));
-                           
-          if (isCommit) {
-            Animated.timing(monthProgress, {
-              toValue: 1,
-              duration: 220,
-              easing: Easing.out(Easing.cubic),
-              useNativeDriver: true,
-            }).start(({ finished }) => {
-              monthAnimatingRef.current = false;
-              if (!finished) return;
-              const currentMonth = visibleMonthRef.current;
-              const nextMonth = new Date(
-                currentMonth.getFullYear(),
-                currentMonth.getMonth() + currentDirection,
-                1
-              );
-              visibleMonthRef.current = nextMonth;
-              setVisibleMonth(nextMonth);
-              setIncomingMonth(null);
-            });
-          } else {
-            Animated.spring(monthProgress, {
-              toValue: 0,
-              stiffness: 420,
-              damping: 38,
-              overshootClamping: true,
-              useNativeDriver: true,
-            }).start(() => {
-              monthAnimatingRef.current = false;
-              setIncomingMonth(null);
-            });
-          }
-        },
-      }),
-    [viewportWidth, monthProgress]
-  );
+  }, [calendarWidth]);
 
   if (!visible) return null;
 
@@ -1622,31 +1525,29 @@ function NewGoalDueDatePickerSheet({
     setSelectedDate(date);
     setHasDueDate(true);
   };
+
   const selectQuickDate = (date: Date) => {
     updateDraft(date);
-    monthProgress.stopAnimation();
-    monthAnimatingRef.current = false;
-    if (monthAnimationFrameRef.current !== null) {
-      cancelAnimationFrame(monthAnimationFrameRef.current);
-      monthAnimationFrameRef.current = null;
-    }
-    const nextMonth = new Date(date.getFullYear(), date.getMonth(), 1);
-    visibleMonthRef.current = nextMonth;
-    setVisibleMonth(nextMonth);
-    setIncomingMonth(null);
+    const targetIndex = Math.max(0, Math.min(
+      (date.getFullYear() - today.getFullYear()) * 12 + (date.getMonth() - today.getMonth()),
+      MONTH_RANGE - 1
+    ));
+    setActiveIndex(targetIndex);
+    flatListRef.current?.scrollToIndex({ index: targetIndex, animated: true });
   };
+
   const quickChoices = [
-    { label: 'Today', date: addLocalDays(new Date(), 0) },
-    { label: 'Tomorrow', date: addLocalDays(new Date(), 1) },
+    { label: 'Today', date: addLocalDays(today, 0) },
+    { label: 'Tomorrow', date: addLocalDays(today, 1) },
     {
       label: 'This Weekend',
       date: addLocalDays(
-        new Date(),
-        (6 - new Date().getDay() + 7) % 7
+        today,
+        (6 - today.getDay() + 7) % 7
       ),
     },
   ];
-  const today = new Date();
+
   const calendarDatesForMonth = (month: Date) => {
     const mondayOffset = (month.getDay() + 6) % 7;
     const firstCalendarDate = addLocalDays(month, -mondayOffset);
@@ -1654,46 +1555,26 @@ function NewGoalDueDatePickerSheet({
       addLocalDays(firstCalendarDate, index)
     );
   };
-  const canGoToPreviousMonth =
-    visibleMonth.getFullYear() > today.getFullYear() ||
-    visibleMonth.getMonth() > today.getMonth();
-  const monthLabel = (incomingMonth ?? visibleMonth).toLocaleDateString(undefined, {
+
+  const activeMonth = monthsData[activeIndex]?.date || today;
+  const canGoToPreviousMonth = activeIndex > 0;
+  const canGoToNextMonth = activeIndex < MONTH_RANGE - 1;
+  const monthLabel = activeMonth.toLocaleDateString(undefined, {
     month: 'long',
     year: 'numeric',
   });
-  const startMonthTransition = (direction: 1 | -1) => {
-    if (monthAnimatingRef.current) return;
-    const currentMonth = visibleMonthRef.current;
-    const nextMonth = new Date(
-      currentMonth.getFullYear(),
-      currentMonth.getMonth() + direction,
-      1
-    );
-    const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-    if (nextMonth < currentMonthStart) return;
 
-    monthAnimatingRef.current = true;
-    setMonthDirection(direction);
-    setIncomingMonth(nextMonth);
-    monthProgress.setValue(0);
-    monthAnimationFrameRef.current = requestAnimationFrame(() => {
-      monthAnimationFrameRef.current = null;
-      Animated.timing(monthProgress, {
-        toValue: 1,
-        duration: 260,
-        easing: Easing.bezier(0.22, 1, 0.36, 1),
-        useNativeDriver: true,
-      }).start(({ finished }) => {
-        monthAnimatingRef.current = false;
-        if (!finished) return;
-        visibleMonthRef.current = nextMonth;
-        setVisibleMonth(nextMonth);
-        setIncomingMonth(null);
-      });
-    });
+  const goToPreviousMonth = () => {
+    if (canGoToPreviousMonth) {
+      flatListRef.current?.scrollToIndex({ index: activeIndex - 1, animated: true });
+    }
   };
 
-  startMonthTransitionRef.current = startMonthTransition;
+  const goToNextMonth = () => {
+    if (canGoToNextMonth) {
+      flatListRef.current?.scrollToIndex({ index: activeIndex + 1, animated: true });
+    }
+  };
 
   const renderCalendarGrid = (month: Date) => (
     <View style={styles.dueCalendarGrid}>
@@ -1729,6 +1610,7 @@ function NewGoalDueDatePickerSheet({
       })}
     </View>
   );
+
   const handleDone = () => {
     onChange(
       hasDueDate
@@ -1846,10 +1728,10 @@ function NewGoalDueDatePickerSheet({
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Previous month"
-                  disabled={!canGoToPreviousMonth || Boolean(incomingMonth)}
+                  disabled={!canGoToPreviousMonth}
                   hitSlop={3}
-                  onPress={() => startMonthTransition(-1)}
-                  style={styles.dueCalendarArrow}
+                  onPress={goToPreviousMonth}
+                  style={[styles.dueCalendarArrow, !canGoToPreviousMonth && { opacity: 0.5 }]}
                 >
                   <ChevronRight
                     size={19}
@@ -1860,12 +1742,15 @@ function NewGoalDueDatePickerSheet({
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Next month"
-                  disabled={Boolean(incomingMonth)}
+                  disabled={!canGoToNextMonth}
                   hitSlop={3}
-                  onPress={() => startMonthTransition(1)}
-                  style={styles.dueCalendarArrow}
+                  onPress={goToNextMonth}
+                  style={[styles.dueCalendarArrow, !canGoToNextMonth && { opacity: 0.5 }]}
                 >
-                  <ChevronRight size={19} color="#6C5750" />
+                  <ChevronRight
+                    size={19}
+                    color={canGoToNextMonth ? '#6C5750' : '#D8CCC7'}
+                  />
                 </Pressable>
               </View>
             </View>
@@ -1876,49 +1761,33 @@ function NewGoalDueDatePickerSheet({
                 </Text>
               ))}
             </View>
-            <View
-              style={styles.dueCalendarGridViewport}
-              {...calendarPanResponder.panHandlers}
-            >
-              {incomingMonth ? (
-                <>
-                <Animated.View
-                  pointerEvents="none"
-                  style={[
-                    styles.dueCalendarGridLayer,
-                    {
-                      transform: [{
-                        translateX: monthProgress.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0, -monthDirection * viewportWidth],
-                        }),
-                      }],
-                    },
-                  ]}
-                >
-                  {renderCalendarGrid(visibleMonth)}
-                </Animated.View>
-                <Animated.View
-                  style={[
-                    styles.dueCalendarGridLayer,
-                    {
-                      transform: [{
-                        translateX: monthProgress.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: [monthDirection * viewportWidth, 0],
-                          }),
-                      }],
-                    },
-                  ]}
-                >
-                  {renderCalendarGrid(incomingMonth)}
-                </Animated.View>
-                </>
-              ) : (
-                <View style={styles.dueCalendarGridLayer}>
-                  {renderCalendarGrid(visibleMonth)}
-                </View>
-              )}
+            <View style={styles.dueCalendarGridViewport}>
+              <FlatList
+                ref={flatListRef}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                data={monthsData}
+                keyExtractor={(item) => item.key}
+                renderItem={({ item }: { item: { key: string; date: Date } }) => (
+                  <View style={{ width: calendarWidth }}>
+                    {renderCalendarGrid(item.date)}
+                  </View>
+                )}
+                getItemLayout={(data: any, index: number) => ({
+                  length: calendarWidth,
+                  offset: calendarWidth * index,
+                  index,
+                })}
+                initialScrollIndex={activeIndex}
+                initialNumToRender={2}
+                windowSize={5}
+                removeClippedSubviews={false}
+                onScroll={handleScroll}
+                scrollEventThrottle={16}
+                bounces={false}
+                keyboardShouldPersistTaps="handled"
+              />
             </View>
           </View>
 
@@ -2537,7 +2406,7 @@ function AppContent({
   );
   const [shakeTaskId, setShakeTaskId] =
     useState<string | null>(null);
-    
+
   const [shakeNonce, setShakeNonce] = useState(0);
   const [completionPhases, setCompletionPhases] = useState<
     Record<string, 'acknowledging' | 'departing'>
@@ -2660,7 +2529,7 @@ const [
   const screenOpacity = useRef(
     new Animated.Value(1)
   ).current;
-  
+
   const screenTranslateY = useRef(
     new Animated.Value(0)
   ).current;
@@ -2674,7 +2543,7 @@ const [
           });
         }
       );
-  
+
     return () => {
       guidedScrollY.removeListener(
         listenerId
@@ -2953,7 +2822,7 @@ const [
   const triggerShake = (taskId: string) => {
     setShakeTaskId(taskId);
     setShakeNonce((value) => value + 1);
-  
+
     setTimeout(() => {
       setShakeTaskId((current) =>
         current === taskId
@@ -3439,7 +3308,7 @@ const [
     setGoalLandingRect(null);
     setEnteringTaskId(task.id);
     setHiddenHandoffTaskId(task.id);
-    
+
     setTasks((current) => [
       task,
       ...current,
@@ -3447,14 +3316,14 @@ const [
     if (remoteMode) {
       setGeneratingStepGoalIds((current) => new Set(current).add(task.id));
     }
-    
+
     setTitle('');
     setDueAt(undefined);
     setDueHasTime(false);
     setCollaborationMode('private');
     setCollaborationPersonId(null);
-    
-    
+
+
     notify(
       'Goal created'
     );
@@ -3549,7 +3418,7 @@ const [
     }
 
     guidedScrollY.stopAnimation();
-  
+
     setEnteringTaskId(null);
     setHiddenHandoffTaskId(null);
     setGoalLandingRect(null);
@@ -3560,7 +3429,7 @@ const [
       handoffProgress.removeListener(stackScrollListenerRef.current);
       stackScrollListenerRef.current = null;
     }
-  
+
     setNewGoalTransitionState('closed');
     newGoalFocusRiseProgress.stopAnimation();
     newGoalFocusRiseProgress.setValue(0);
@@ -3575,7 +3444,7 @@ const [
     setNewGoalSession(session);
 
     guidedScrollY.stopAnimation();
-  
+
     setEnteringTaskId(null);
     setHiddenHandoffTaskId(null);
     setGoalLandingRect(null)
@@ -3586,7 +3455,7 @@ const [
       handoffProgress.removeListener(stackScrollListenerRef.current);
       stackScrollListenerRef.current = null;
     }
-  
+
     setTitle('');
     setCategory('work');
     setDueAt(undefined);
@@ -3886,10 +3755,10 @@ const [
   useLayoutEffect(() => {
     screenOpacity.stopAnimation();
     screenTranslateY.stopAnimation();
-  
+
     screenOpacity.setValue(reducedMotion ? 0.98 : 0.94);
     screenTranslateY.setValue(reducedMotion ? 0 : 7);
-  
+
     Animated.parallel([
       Animated.timing(
         screenOpacity,
@@ -3902,7 +3771,7 @@ const [
           useNativeDriver: true,
         }
       ),
-  
+
       Animated.timing(
         screenTranslateY,
         {
@@ -3969,22 +3838,22 @@ const [
        <ScrollView
        ref={homeScrollRef}
        style={styles.homeCanvas}
-     
+
        showsVerticalScrollIndicator={
          false
        }
-     
+
        contentContainerStyle={
          styles.scroll
        }
-     
+
        scrollEventThrottle={16}
-     
+
        onScroll={(event) => {
          homeScrollYRef.current =
            event.nativeEvent.contentOffset.y;
        }}
-     
+
        onLayout={(event) => {
          homeViewportHeightRef.current =
            event.nativeEvent.layout.height;
@@ -4311,21 +4180,21 @@ const [
       width,
       height,
     } = event.nativeEvent.layout;
-    
+
       goalPositionsRef.current[
         task.id
       ] = y;
-    
+
       if (
         isIndividualLandingTarget &&
         goalLandingRect === null
       ) {
         const currentScrollY =
           homeScrollYRef.current;
-    
+
         const viewportHeight =
           homeViewportHeightRef.current;
-    
+
         requestAnimationFrame(() => {
           goalCardRefs.current[
             task.id
@@ -5315,12 +5184,12 @@ function Focus({
     ) {
       return;
     }
-  
+
     lastShakeNonce.current = shakeNonce;
-  
+
     shakeX.stopAnimation();
     shakeX.setValue(0);
-  
+
     Animated.sequence([
       Animated.timing(shakeX, {
         toValue: -7,
@@ -5522,7 +5391,7 @@ function Focus({
           ) : null}
 
           {allDone && task.microSteps.length > 0 && (
-            <View style={[styles.heroFoot, { borderTopColor: `${c.accent}42` }]}> 
+            <View style={[styles.heroFoot, { borderTopColor: `${c.accent}42` }]}>
             <Pressable
               onPress={(event) => {
                 event.stopPropagation();
@@ -6231,12 +6100,12 @@ function BottomNav({
   const indicatorScaleX = useRef(
     new Animated.Value(1)
   ).current;
-  
+
   const indicatorScaleY = useRef(
     new Animated.Value(1)
   ).current;
 
-  
+
   const activeGroupProgress = useRef(
     items.map(
       () => new Animated.Value(0)
@@ -6289,10 +6158,10 @@ function BottomNav({
       });
       return;
     }
-    
+
     const previousIndex =
       previousIndexRef.current;
-    
+
     const source = Math.min(
       navWidth - pillWidth,
       Math.max(
@@ -6301,12 +6170,12 @@ function BottomNav({
           pillWidth / 2
       )
     );
-    
+
     const direction =
       activeIndex > previousIndex
         ? 1
         : -1;
-    
+
     previousIndexRef.current =
       activeIndex;
       indicatorX.stopAnimation();
@@ -6329,7 +6198,7 @@ if (activeIndex !== previousIndex) {
         useNativeDriver: true,
       }
     ),
-  
+
     // soft material response while moving
     Animated.sequence([
       Animated.parallel([
@@ -6343,7 +6212,7 @@ if (activeIndex !== previousIndex) {
             useNativeDriver: true,
           }
         ),
-  
+
         Animated.spring(
           indicatorScaleY,
           {
@@ -6355,7 +6224,7 @@ if (activeIndex !== previousIndex) {
           }
         ),
       ]),
-  
+
       Animated.parallel([
         Animated.spring(
           indicatorScaleX,
@@ -6367,7 +6236,7 @@ if (activeIndex !== previousIndex) {
             useNativeDriver: true,
           }
         ),
-  
+
         Animated.spring(
           indicatorScaleY,
           {
@@ -6592,7 +6461,7 @@ items.forEach((_, index) => {
           ],
       },
     ]}
-  >  
+  >
     <Icon
       size={19}
       color={active ? colors.coralStrong : colors.textSecondary}
@@ -7021,7 +6890,7 @@ function TaskModal({
     requestAnimationFrame(() => {
       translateY.stopAnimation();
       backdropOpacity.stopAnimation();
-    
+
       Animated.parallel([
         Animated.timing(
           backdropOpacity,
@@ -7034,7 +6903,7 @@ function TaskModal({
             useNativeDriver: true,
           }
         ),
-    
+
         reducedMotion
           ? Animated.timing(translateY, {
               toValue: 0,
@@ -7094,7 +6963,7 @@ function TaskModal({
       PanResponder.create({
         onStartShouldSetPanResponder:
           () => true,
-  
+
         onMoveShouldSetPanResponder: (
           _event,
           gesture
@@ -7102,7 +6971,7 @@ function TaskModal({
           gesture.dy > 2 &&
           Math.abs(gesture.dy) >
             Math.abs(gesture.dx),
-  
+
         onPanResponderMove: (
           _event,
           gesture
@@ -7114,20 +6983,20 @@ function TaskModal({
             translateY.setValue(
               gesture.dy
             );
-  
+
             const fade =
               Math.max(
                 0,
                 1 -
                   gesture.dy / 420
               );
-  
+
             backdropOpacity.setValue(
               fade
             );
           }
         },
-  
+
         onPanResponderRelease: (
           _event,
           gesture
@@ -7139,7 +7008,7 @@ function TaskModal({
             dismiss();
             return;
           }
-  
+
           Animated.parallel([
             Animated.spring(
               translateY,
@@ -7151,7 +7020,7 @@ function TaskModal({
                 useNativeDriver: true,
               }
             ),
-  
+
             Animated.spring(
               backdropOpacity,
               {
@@ -7172,22 +7041,22 @@ function TaskModal({
     if (!task) {
       return;
     }
-  
+
     const doneCount =
       task.microSteps.filter(
         (step) => step.completed
       ).length;
-  
+
     const total =
       task.microSteps.length;
-  
+
     const nextProgress =
       total > 0
         ? doneCount / total
         : 0;
-  
+
     detailProgress.stopAnimation();
-  
+
     Animated.timing(
       detailProgress,
       {
@@ -7200,18 +7069,18 @@ function TaskModal({
       }
     ).start();
   }, [task?.microSteps]);
-  
+
   if (!task || !visible) {
     return null;
   }
-  
+
   const c = COLORS[task.category];
-  
+
   const done =
     task.microSteps.filter(
       (step) => step.completed
     ).length;
-  
+
   const allDone = canCompleteGoal(task);
 
   const canReopen =
@@ -8163,11 +8032,11 @@ function NewGoalModal({
   const submitDockX = useRef(
     new Animated.Value(0)
   ).current;
-  
+
   const submitDockScaleX = useRef(
     new Animated.Value(1)
   ).current;
-  
+
   const submitDockScaleY = useRef(
     new Animated.Value(1)
   ).current;
@@ -8183,7 +8052,7 @@ function NewGoalModal({
     useState<SkImage | null>(null);
   const handoffImageRef =
     useRef<SkImage | null>(null);
-  
+
   const [dockFinished, setDockFinished] =
     useState(false);
     const [morphRect, setMorphRect] =
@@ -8203,7 +8072,7 @@ submitDockScaleX.setValue(1);
 submitDockScaleY.setValue(1);
 
 setDockFinished(false);
-  
+
     finishHandoff(submittingSessionRef.current);
   };
   useEffect(() => {
@@ -8214,7 +8083,7 @@ setDockFinished(false);
     ) {
       return;
     }
-  
+
     /* Both cards have completed their shared-progress crossfade. */
     finishHandoff(submittingSessionRef.current);
 
@@ -8261,7 +8130,7 @@ setDockFinished(false);
     new Animated.Value(0)
   ).current;
 
-  
+
 
   const keyboardHeightRef =
     useRef(0);
@@ -8469,7 +8338,7 @@ setDockFinished(false);
       focusRiseProgress.stopAnimation();
       focusRiseProgress.setValue(0);
       backdropOpacity.setValue(1);
-    
+
       setSubmitting(false);
 setDockFinished(false);
 setSubmittedGoal(null);
@@ -8641,7 +8510,7 @@ useEffect(() => {
     ) {
       return;
     }
-  
+
     Keyboard.dismiss();
     successfulExitRef.current = true;
     submittingSessionRef.current = session;
@@ -8653,15 +8522,15 @@ useEffect(() => {
       dueAt,
       dueHasTime,
     });
-  
+
     setSubmitting(true);
-  
+
     submitProgress.stopAnimation();
     sourceShellHeight.stopAnimation();
     backdropOpacity.stopAnimation();
     sheetY.stopAnimation();
     handoffProgress.stopAnimation();
-  
+
     submitProgress.setValue(0);
     handoffProgress.setValue(0);
     sourceShellHeight.setValue(
@@ -8670,7 +8539,7 @@ useEffect(() => {
         sourceShellExpandedHeightRef.current
       )
     );
-  
+
     submitDockY.stopAnimation();
 submitDockX.stopAnimation();
 submitDockScaleX.stopAnimation();
@@ -8740,7 +8609,7 @@ morphCardOpacity.setValue(1);
           useNativeDriver: true,
         }
       ),
-    
+
       Animated.timing(
         sheetMorph,
         {
@@ -8839,7 +8708,7 @@ morphCardOpacity.setValue(1);
             handoffImageRef.current = null;
             setHandoffImage(null);
           }
-      
+
           morphFrameRef.current = requestAnimationFrame(() => {
             morphFrameRef.current = null;
 
@@ -8926,7 +8795,7 @@ morphCardOpacity.setValue(1);
             useNativeDriver: true,
           }
         ),
-  
+
       ]).start(({ finished }) => {
         if (
           !finished ||
@@ -8934,7 +8803,7 @@ morphCardOpacity.setValue(1);
         ) {
           return;
         }
-  
+
         });
         });
         };
@@ -8960,27 +8829,27 @@ morphCardOpacity.setValue(1);
                  * transform scaling happens from
                  * the card's center.
                  */
-        
+
                 const previewCenterX =
                   previewX +
                   previewWidth / 2;
-        
+
                 const previewCenterY =
                   previewY +
                   previewHeight / 2;
-        
+
                 const landingCenterX =
                   landingRect.x +
                   landingRect.width / 2;
-        
+
                 const landingCenterY =
                   landingRect.y +
                   landingRect.height / 2;
-        
+
                 const moveX =
                   landingCenterX -
                   previewCenterX;
-        
+
                 const moveY =
                   landingCenterY -
                   previewCenterY;
@@ -8988,14 +8857,14 @@ morphCardOpacity.setValue(1);
                 const landingScrollDeltaY =
                   landingRect.scrollDeltaY ??
                   0;
-        
+
                 const scaleX =
                   landingRect.width > 0 &&
                   previewWidth > 0
                     ? landingRect.width /
                       previewWidth
                     : 1;
-        
+
                 const scaleY =
                   landingRect.height > 0 &&
                   previewHeight > 0
@@ -9070,13 +8939,13 @@ morphCardOpacity.setValue(1);
                     }
                   ),
                 ]).start();
-        
+
                 submitDockX.stopAnimation();
                 submitDockY.stopAnimation();
-        
+
                 submitDockScaleX.stopAnimation();
                 submitDockScaleY.stopAnimation();
-        
+
                 submitDockX.setValue(0);
 submitDockY.setValue(0);
 submitDockScaleX.setValue(1);
@@ -9807,7 +9676,7 @@ Animated.timing(
                           : item === 'money' ? WalletCards
                             : Sprout;
                   const categoryVisual = categoryColors[item];
-                    
+
                   return (
                     <Pressable
                       key={item}
@@ -10134,7 +10003,7 @@ Animated.timing(
         </AnimatedReanimated.View>
         </GestureDetector>
         )}
-              
+
 {submitting &&
   morphRect &&
   landingRect &&
@@ -10183,17 +10052,17 @@ opacity: submitPreviewOpacity,
             {
               translateX: submitDockX,
             },
-          
+
             {
               translateY: submitDockY,
             },
-          
-            
-          
+
+
+
             {
               scaleX: submitDockScaleX,
             },
-          
+
             {
               scaleY: submitDockScaleY,
             },
@@ -10779,7 +10648,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  
+
   navActiveLabel: {
     color: colors.coralStrong,
     fontSize: 10.5,
@@ -10817,20 +10686,20 @@ const styles = StyleSheet.create({
   navAnimatedContent: {
     width: 96,
     height: 38,
-  
+
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-  
+
     gap: 7,
   },
-  
+
   navAnimatedLabel: {
     color: '#FF8F73',
-  
+
     fontSize: 10.5,
     fontWeight: '900',
-  
+
     letterSpacing: -0.1,
   },
   newGoalModalRoot: {
@@ -10844,130 +10713,130 @@ const styles = StyleSheet.create({
   },
   newGoalFloatingCardState: {
     marginBottom: 10,
-  
+
     borderBottomLeftRadius: 28,
     borderBottomRightRadius: 28,
-  
+
     alignSelf: 'center',
   },
   newGoalDim: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: '#18181B',
   },
-  
+
   newGoalAdaptiveWrap: {
     width: '100%',
     paddingHorizontal: 0,
   },
-  
+
   newGoalAdaptiveCard: {
     width: '100%',
 
     backgroundColor: '#F8F3EA',
-  
+
     borderTopLeftRadius: 34,
     borderTopRightRadius: 34,
-  
+
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
-  
+
     paddingHorizontal: 25,
     paddingTop: 8,
-  
+
     paddingBottom:
       Platform.OS === 'ios'
         ? 28
         : 22,
-  
+
     overflow: 'hidden',
-  
+
     shadowColor: colors.warmShadow,
-  
+
     shadowOffset: {
       width: 0,
       height: -4,
     },
-  
+
     shadowOpacity: 0.06,
     shadowRadius: 18,
     elevation: 5,
   },
   submitGoalPreview: {
     position: 'absolute',
-  
+
     left: 16,
     right: 16,
-  
+
     bottom: 110,
 
     flexDirection: 'row',
     minHeight: 101,
-  
+
     borderRadius: 22,
-  
+
     backgroundColor: 'transparent',
-  
+
     overflow: 'hidden',
-  
+
     shadowColor: '#18181B',
     shadowOpacity: 0.045,
     shadowRadius: 10,
-  
+
     elevation: 1,
-  
+
     zIndex: 20,
-  
+
   },
-  
+
   submitGoalAccent: {
     position: 'absolute',
-  
+
     left: 0,
     top: 0,
     bottom: 0,
-  
+
     width: 4,
   },
-  
+
   submitGoalTop: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-  
+
     marginBottom: 12,
   },
-  
+
   submitGoalTitle: {
     color: colors.textPrimary,
-  
+
     fontSize: 17,
     lineHeight: 22,
-  
+
     fontWeight: '900',
     letterSpacing: -0.3,
   },
-  
+
   submitGoalSuccess: {
     marginTop: 14,
-  
+
     alignSelf: 'flex-start',
-  
+
     height: 27,
     paddingHorizontal: 10,
-  
+
     borderRadius: 14,
-  
+
     flexDirection: 'row',
     alignItems: 'center',
-  
+
     gap: 5,
-  
+
     backgroundColor: colors.coralStrong,
   },
-  
+
   submitGoalSuccessText: {
     color: '#fff',
-  
+
     fontSize: 9,
     fontWeight: '900',
   },
@@ -10975,7 +10844,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     minHeight: 0,
   },
-  
+
   newGoalScrollContent: {
     paddingBottom: 18,
   },
@@ -13135,13 +13004,13 @@ const styles = StyleSheet.create({
     left: 22,
     right: 22,
     bottom: 20,
-  
+
     height: 70,
-  
+
     backgroundColor: colors.surface,
-  
+
     borderRadius: 29,
-  
+
     shadowColor: colors.warmShadow,
     shadowOffset: {
       width: 0,
@@ -13149,34 +13018,34 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.13,
     shadowRadius: 18,
-  
+
     elevation: 12,
-  
+
     paddingHorizontal: 8,
     paddingVertical: 7,
   },
-  
+
   nav: {
     flex: 1,
-  
+
     flexDirection: 'row',
     alignItems: 'center',
-  
+
     position: 'relative',
   },
-  
+
   navIndicator: {
     position: 'absolute',
     left: 0,
     top: 9,
-  
+
     borderRadius: 19,
-  
+
     backgroundColor: colors.coralWhisper,
-  
+
     borderWidth: 1,
     borderColor: 'rgba(255,143,115,0.16)',
-  
+
     shadowColor: colors.coralPrimary,
     shadowOffset: {
       width: 0,
@@ -13184,31 +13053,31 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.06,
     shadowRadius: 5,
-  
+
     elevation: 2,
     zIndex: 1,
   },
 
   navItemContent: {
     height: 38,
-  
+
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-  
+
     gap: 5,
-  
+
     paddingHorizontal: 7,
-  
+
     borderRadius: 19,
   },
-  
+
   navItemContentActive: {
     width: 90,
   },
-  
 
-  
+
+
   navPressed: {
     opacity: 0.74,
   },
