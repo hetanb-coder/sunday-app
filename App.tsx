@@ -1,19 +1,28 @@
 import {
   ArrowRight,
+  Ban,
+  Briefcase,
+  CalendarCheck2,
+  CalendarClock,
   CalendarDays,
+  CalendarRange,
   Check,
   ChevronRight,
   Clock3,
   Flame,
   Gem,
   Heart,
+  HeartHandshake,
   House,
+  Leaf,
   Layers3,
   Plus,
   Sparkles,
+  Sprout,
   Trash2,
   User,
   Users,
+  WalletCards,
   X,
   Zap
 } from 'lucide-react-native';
@@ -1016,12 +1025,45 @@ function CategoryGroupShell({
   );
 }
 
-function DueQuickChoice({
+function LegacyDueQuickChoice({
   label,
   selected,
 }: {
   label: string;
   selected: boolean;
+}) {
+  const selection = useSharedValue(selected ? 1 : 0);
+
+  useEffect(() => {
+    selection.value = withTiming(selected ? 1 : 0, { duration: 170 });
+  }, [selected, selection]);
+
+  const selectionStyle = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(selection.value, [0, 1], ['#F4F4F5', '#FFF1ED']),
+    borderColor: interpolateColor(selection.value, [0, 1], ['rgba(255,182,165,0)', '#FFB6A5']),
+    transform: [{ scale: 1 - selection.value * 0.012 }],
+  }));
+  const textStyle = useAnimatedStyle(() => ({
+    color: interpolateColor(selection.value, [0, 1], ['#71717A', '#C65D47']),
+  }));
+
+  return (
+    <AnimatedReanimated.View style={[styles.legacyDueQuickChip, selectionStyle]}>
+      <AnimatedReanimated.Text style={[styles.legacyDueQuickChipText, textStyle]}>
+        {label}
+      </AnimatedReanimated.Text>
+    </AnimatedReanimated.View>
+  );
+}
+
+function DueQuickChoice({
+  label,
+  selected,
+  icon,
+}: {
+  label: string;
+  selected: boolean;
+  icon?: React.ReactNode;
 }) {
   const selection = useSharedValue(selected ? 1 : 0);
 
@@ -1035,12 +1077,12 @@ function DueQuickChoice({
     backgroundColor: interpolateColor(
       selection.value,
       [0, 1],
-      ['#F4F4F5', '#FFF1ED']
+      ['#FFFCFA', '#FFF1ED']
     ),
     borderColor: interpolateColor(
       selection.value,
       [0, 1],
-      ['rgba(255,182,165,0)', '#FFB6A5']
+      ['#E5C9C1', '#FF7D6C']
     ),
     transform: [{ scale: 1 - selection.value * 0.012 }],
   }));
@@ -1057,6 +1099,7 @@ function DueQuickChoice({
     <AnimatedReanimated.View
       style={[styles.dueQuickChip, selectionStyle]}
     >
+      {icon}
       <AnimatedReanimated.Text
         style={[styles.dueQuickChipText, textStyle]}
       >
@@ -1184,17 +1227,17 @@ function DueDatePickerSheet({
         <AnimatedReanimated.View
           layout={LinearTransition.duration(260)}
           style={[
-            styles.duePickerSheet,
+            styles.legacyDuePickerSheet,
             { paddingBottom: Math.max(22, insets.bottom + 14) },
           ]}
         >
           <View style={styles.dragHandleArea}>
             <View style={styles.grabber} />
           </View>
-          <View style={styles.duePickerHeader}>
+          <View style={styles.legacyDuePickerHeader}>
             <View>
               <Text style={styles.duePickerKicker}>SCHEDULE</Text>
-              <Text style={styles.duePickerTitle}>
+              <Text style={styles.legacyDuePickerTitle}>
                 {pickerMode === 'calendar'
                   ? 'Pick a date'
                   : pickerMode === 'time'
@@ -1220,7 +1263,7 @@ function DueDatePickerSheet({
           {pickerMode === 'quick' && (
           <AnimatedReanimated.View
             entering={FadeInDown.duration(190)}
-            style={styles.dueQuickChoices}
+            style={styles.legacyDueQuickChoices}
           >
             {quickChoices.map((choice) => {
               const selected = sameLocalDay(selectedDate, choice.date);
@@ -1235,11 +1278,11 @@ function DueDatePickerSheet({
                     selectQuickDate(choice.date);
                   }}
                   style={({ pressed }) => [
-                    styles.dueQuickChipPressable,
+                    styles.legacyDueQuickChipPressable,
                     pressed && styles.dueQuickChipPressed,
                   ]}
                 >
-                  <DueQuickChoice
+                  <LegacyDueQuickChoice
                     label={choice.label}
                     selected={selected && hasDueDate}
                   />
@@ -1250,13 +1293,13 @@ function DueDatePickerSheet({
               accessibilityRole="button"
               onPress={() => setPickerMode('calendar')}
               style={({ pressed }) => [
-                styles.dueQuickChip,
+                styles.legacyDueQuickChip,
                 styles.dueQuickChipCustom,
                 pressed && styles.dueQuickChipPressed,
               ]}
             >
               <CalendarDays size={14} color="#52525B" />
-              <Text style={styles.dueQuickChipText}>Pick a date</Text>
+              <Text style={styles.legacyDueQuickChipText}>Pick a date</Text>
             </Pressable>
           </AnimatedReanimated.View>
           )}
@@ -1361,16 +1404,555 @@ function DueDatePickerSheet({
   );
 }
 
+
+function NewGoalDueDatePickerSheet({
+  visible,
+  dismissRequest,
+  dueAt,
+  onChange,
+  onClose,
+}: {
+  visible: boolean;
+  dismissRequest: number;
+  dueAt?: string;
+  dueHasTime: boolean;
+  onChange: (dueAt?: string, dueHasTime?: boolean) => void;
+  onClose: () => void;
+}) {
+  const insets = useSafeAreaInsets();
+  const { height: viewportHeight, width: viewportWidth } = useWindowDimensions();
+  const initialDate = dueAt ? new Date(dueAt) : addLocalDays(new Date(), 1);
+  const [selectedDate, setSelectedDate] = useState(initialDate);
+  const [hasDueDate, setHasDueDate] = useState(Boolean(dueAt));
+  const [visibleMonth, setVisibleMonth] = useState(
+    new Date(initialDate.getFullYear(), initialDate.getMonth(), 1)
+  );
+  const [incomingMonth, setIncomingMonth] = useState<Date | null>(null);
+  const [monthDirection, setMonthDirection] = useState<1 | -1>(1);
+  const sheetY = useRef(new Animated.Value(viewportHeight)).current;
+  const backdropOpacity = useRef(new Animated.Value(0)).current;
+  const monthProgress = useRef(new Animated.Value(0)).current;
+  const closingRef = useRef(false);
+  const monthAnimatingRef = useRef(false);
+  const visibleMonthRef = useRef(visibleMonth);
+  const monthAnimationFrameRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!visible) return;
+    const nextDate = dueAt
+      ? new Date(dueAt)
+      : addLocalDays(new Date(), 1);
+    const nextMonth = new Date(nextDate.getFullYear(), nextDate.getMonth(), 1);
+    setSelectedDate(nextDate);
+    setHasDueDate(Boolean(dueAt));
+    setVisibleMonth(nextMonth);
+    setIncomingMonth(null);
+    visibleMonthRef.current = nextMonth;
+    monthAnimatingRef.current = false;
+    if (monthAnimationFrameRef.current !== null) {
+      cancelAnimationFrame(monthAnimationFrameRef.current);
+      monthAnimationFrameRef.current = null;
+    }
+    monthProgress.stopAnimation();
+    monthProgress.setValue(0);
+    closingRef.current = false;
+    sheetY.setValue(viewportHeight);
+    backdropOpacity.setValue(0);
+    Animated.parallel([
+      Animated.timing(sheetY, {
+        toValue: 0,
+        duration: 240,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(backdropOpacity, {
+        toValue: 1,
+        duration: 180,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [backdropOpacity, monthProgress, sheetY, viewportHeight, visible]);
+
+  const closeSurface = () => {
+    if (closingRef.current) return;
+    closingRef.current = true;
+    Animated.parallel([
+      Animated.timing(sheetY, {
+        toValue: viewportHeight,
+        duration: 240,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(backdropOpacity, {
+        toValue: 0,
+        duration: 200,
+        easing: Easing.in(Easing.quad),
+        useNativeDriver: true,
+      }),
+    ]).start(({ finished }) => {
+      if (finished) onClose();
+      closingRef.current = false;
+    });
+  };
+
+  useEffect(() => {
+    if (visible && dismissRequest > 0) closeSurface();
+  }, [dismissRequest]);
+
+  useEffect(() => {
+    if (!incomingMonth && !monthAnimatingRef.current) {
+      monthProgress.setValue(0);
+    }
+  }, [incomingMonth, monthProgress]);
+
+  const startMonthTransitionRef = useRef<((direction: 1 | -1) => void) | null>(null);
+  const swipeActiveDirectionRef = useRef<1 | -1 | 0>(0);
+  const lastProcessedDirectionRef = useRef<1 | -1 | 0>(0);
+
+  const calendarPanResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => false,
+        onMoveShouldSetPanResponder: (_event, gesture) =>
+          Math.abs(gesture.dx) > 15 && Math.abs(gesture.dx) > Math.abs(gesture.dy),
+        onPanResponderGrant: () => {
+          monthProgress.stopAnimation();
+          if (monthAnimationFrameRef.current !== null) {
+            cancelAnimationFrame(monthAnimationFrameRef.current);
+            monthAnimationFrameRef.current = null;
+          }
+          monthAnimatingRef.current = true;
+          swipeActiveDirectionRef.current = 0;
+          lastProcessedDirectionRef.current = 0;
+        },
+        onPanResponderMove: (_event, gesture) => {
+          const dx = gesture.dx;
+          const wantedDirection = dx < 0 ? 1 : -1;
+          
+          if (lastProcessedDirectionRef.current !== wantedDirection) {
+            lastProcessedDirectionRef.current = wantedDirection;
+            const currentMonth = visibleMonthRef.current;
+            const targetMonth = new Date(
+              currentMonth.getFullYear(),
+              currentMonth.getMonth() + wantedDirection,
+              1
+            );
+            const now = new Date();
+            const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+            
+            if (targetMonth < currentMonthStart) {
+              setIncomingMonth(null);
+              swipeActiveDirectionRef.current = 0;
+            } else {
+              setMonthDirection(wantedDirection);
+              setIncomingMonth(targetMonth);
+              swipeActiveDirectionRef.current = wantedDirection;
+            }
+          }
+
+          if (swipeActiveDirectionRef.current !== 0) {
+            const progress = Math.min(1, Math.max(0, Math.abs(dx) / viewportWidth));
+            monthProgress.setValue(progress);
+          } else {
+            monthProgress.setValue(0);
+          }
+        },
+        onPanResponderRelease: (_event, gesture) => {
+          const dx = gesture.dx;
+          const vx = gesture.vx;
+          const currentDirection = swipeActiveDirectionRef.current;
+          
+          if (currentDirection === 0) {
+            Animated.spring(monthProgress, {
+              toValue: 0,
+              stiffness: 420,
+              damping: 38,
+              overshootClamping: true,
+              useNativeDriver: true,
+            }).start(() => {
+              monthAnimatingRef.current = false;
+              setIncomingMonth(null);
+            });
+            return;
+          }
+
+          const isCommit = (currentDirection === 1 && (dx < -viewportWidth * 0.35 || vx < -0.8)) ||
+                           (currentDirection === -1 && (dx > viewportWidth * 0.35 || vx > 0.8));
+                           
+          if (isCommit) {
+            Animated.timing(monthProgress, {
+              toValue: 1,
+              duration: 220,
+              easing: Easing.out(Easing.cubic),
+              useNativeDriver: true,
+            }).start(({ finished }) => {
+              monthAnimatingRef.current = false;
+              if (!finished) return;
+              const currentMonth = visibleMonthRef.current;
+              const nextMonth = new Date(
+                currentMonth.getFullYear(),
+                currentMonth.getMonth() + currentDirection,
+                1
+              );
+              visibleMonthRef.current = nextMonth;
+              setVisibleMonth(nextMonth);
+              setIncomingMonth(null);
+            });
+          } else {
+            Animated.spring(monthProgress, {
+              toValue: 0,
+              stiffness: 420,
+              damping: 38,
+              overshootClamping: true,
+              useNativeDriver: true,
+            }).start(() => {
+              monthAnimatingRef.current = false;
+              setIncomingMonth(null);
+            });
+          }
+        },
+      }),
+    [viewportWidth, monthProgress]
+  );
+
+  if (!visible) return null;
+
+  const updateDraft = (date: Date) => {
+    setSelectedDate(date);
+    setHasDueDate(true);
+  };
+  const selectQuickDate = (date: Date) => {
+    updateDraft(date);
+    monthProgress.stopAnimation();
+    monthAnimatingRef.current = false;
+    if (monthAnimationFrameRef.current !== null) {
+      cancelAnimationFrame(monthAnimationFrameRef.current);
+      monthAnimationFrameRef.current = null;
+    }
+    const nextMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+    visibleMonthRef.current = nextMonth;
+    setVisibleMonth(nextMonth);
+    setIncomingMonth(null);
+  };
+  const quickChoices = [
+    { label: 'Today', date: addLocalDays(new Date(), 0) },
+    { label: 'Tomorrow', date: addLocalDays(new Date(), 1) },
+    {
+      label: 'This Weekend',
+      date: addLocalDays(
+        new Date(),
+        (6 - new Date().getDay() + 7) % 7
+      ),
+    },
+  ];
+  const today = new Date();
+  const calendarDatesForMonth = (month: Date) => {
+    const mondayOffset = (month.getDay() + 6) % 7;
+    const firstCalendarDate = addLocalDays(month, -mondayOffset);
+    return Array.from({ length: 42 }, (_, index) =>
+      addLocalDays(firstCalendarDate, index)
+    );
+  };
+  const canGoToPreviousMonth =
+    visibleMonth.getFullYear() > today.getFullYear() ||
+    visibleMonth.getMonth() > today.getMonth();
+  const monthLabel = (incomingMonth ?? visibleMonth).toLocaleDateString(undefined, {
+    month: 'long',
+    year: 'numeric',
+  });
+  const startMonthTransition = (direction: 1 | -1) => {
+    if (monthAnimatingRef.current) return;
+    const currentMonth = visibleMonthRef.current;
+    const nextMonth = new Date(
+      currentMonth.getFullYear(),
+      currentMonth.getMonth() + direction,
+      1
+    );
+    const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    if (nextMonth < currentMonthStart) return;
+
+    monthAnimatingRef.current = true;
+    setMonthDirection(direction);
+    setIncomingMonth(nextMonth);
+    monthProgress.setValue(0);
+    monthAnimationFrameRef.current = requestAnimationFrame(() => {
+      monthAnimationFrameRef.current = null;
+      Animated.timing(monthProgress, {
+        toValue: 1,
+        duration: 260,
+        easing: Easing.bezier(0.22, 1, 0.36, 1),
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        monthAnimatingRef.current = false;
+        if (!finished) return;
+        visibleMonthRef.current = nextMonth;
+        setVisibleMonth(nextMonth);
+        setIncomingMonth(null);
+      });
+    });
+  };
+
+  startMonthTransitionRef.current = startMonthTransition;
+
+  const renderCalendarGrid = (month: Date) => (
+    <View style={styles.dueCalendarGrid}>
+      {calendarDatesForMonth(month).map((date) => {
+        const selected = hasDueDate && sameLocalDay(date, selectedDate);
+        const inMonth =
+          date.getMonth() === month.getMonth() &&
+          date.getFullYear() === month.getFullYear();
+        const disabled = date < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        return (
+          <Pressable
+            key={date.toISOString()}
+            accessibilityRole="button"
+            accessibilityLabel={date.toLocaleDateString()}
+            accessibilityState={{ selected, disabled }}
+            disabled={disabled}
+            hitSlop={{ top: 2, bottom: 2 }}
+            onPress={() => updateDraft(date)}
+            style={styles.dueCalendarDay}
+          >
+            <View style={[styles.dueCalendarDayCircle, selected && styles.dueCalendarDaySelected]}>
+              <Text style={[
+                styles.dueCalendarDayText,
+                !inMonth && styles.dueCalendarDayOutside,
+                disabled && styles.dueCalendarDayDisabled,
+                selected && styles.dueCalendarDayTextSelected,
+              ]}>
+                {date.getDate()}
+              </Text>
+            </View>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+  const handleDone = () => {
+    onChange(
+      hasDueDate
+        ? normalizeDueDate(selectedDate, false)
+        : undefined,
+      false
+    );
+    closeSurface();
+  };
+
+  return (
+      <View style={styles.newGoalChildSheetRoot}>
+        <Animated.View style={[styles.duePickerBackdrop, { opacity: backdropOpacity }]}>
+          <Pressable
+            accessibilityLabel="Close due date picker"
+            style={StyleSheet.absoluteFill}
+            onPress={closeSurface}
+          />
+        </Animated.View>
+        <Animated.View
+          style={[
+            styles.duePickerSheet,
+            {
+              paddingBottom: Math.max(16, insets.bottom + 8),
+              transform: [{ translateY: sheetY }],
+            },
+          ]}
+        >
+          <View style={styles.dragHandleArea}>
+            <View style={[styles.grabber, styles.secondarySheetGrabber]} />
+          </View>
+          <View style={styles.duePickerHeader}>
+            <Text style={styles.duePickerTitle}>Due Date</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Close due date picker"
+              onPress={closeSurface}
+              hitSlop={6}
+              style={({ pressed }) => [
+                styles.secondarySheetClose,
+                pressed && styles.pressed,
+              ]}
+            >
+              <X size={22} color="#5F4D47" />
+            </Pressable>
+          </View>
+          <ScrollView
+            style={styles.duePickerScroll}
+            showsVerticalScrollIndicator={false}
+            bounces={false}
+            scrollEnabled={viewportHeight < 700}
+            contentContainerStyle={styles.duePickerContent}
+          >
+          <View style={styles.dueQuickChoices}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ selected: !hasDueDate }}
+              onPress={() => {
+                setHasDueDate(false);
+              }}
+              style={({ pressed }) => [
+                styles.dueQuickChipPressable,
+                pressed && styles.dueQuickChipPressed,
+              ]}
+            >
+              <DueQuickChoice
+                label="No due date"
+                selected={!hasDueDate}
+                icon={<Ban size={20} color={!hasDueDate ? '#FF7D6C' : '#927D76'} />}
+              />
+            </Pressable>
+            {quickChoices.map((choice) => {
+              const selected = hasDueDate && sameLocalDay(selectedDate, choice.date);
+              const ChoiceIcon = choice.label === 'Today'
+                ? CalendarCheck2
+                : choice.label === 'Tomorrow'
+                  ? CalendarClock
+                  : CalendarRange;
+              return (
+                <Pressable
+                  key={choice.label}
+                  accessibilityRole="button"
+                  accessibilityState={{
+                    selected: selected && hasDueDate,
+                  }}
+                  onPress={() => {
+                    selectQuickDate(choice.date);
+                  }}
+                  style={({ pressed }) => [
+                    styles.dueQuickChipPressable,
+                    pressed && styles.dueQuickChipPressed,
+                  ]}
+                >
+                  <DueQuickChoice
+                    label={choice.label}
+                    selected={selected}
+                    icon={
+                      <ChoiceIcon
+                        size={20}
+                        color={selected ? '#FF7D6C' : '#927D76'}
+                      />
+                    }
+                  />
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <View style={styles.dueCalendarSurface}>
+            <View style={styles.dueCalendarHeader}>
+              <Text style={styles.dueCalendarMonth} numberOfLines={1}>
+                {monthLabel}
+              </Text>
+              <View style={styles.dueCalendarNavigation}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Previous month"
+                  disabled={!canGoToPreviousMonth || Boolean(incomingMonth)}
+                  hitSlop={3}
+                  onPress={() => startMonthTransition(-1)}
+                  style={styles.dueCalendarArrow}
+                >
+                  <ChevronRight
+                    size={19}
+                    color={canGoToPreviousMonth ? '#6C5750' : '#D8CCC7'}
+                    style={{ transform: [{ rotate: '180deg' }] }}
+                  />
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Next month"
+                  disabled={Boolean(incomingMonth)}
+                  hitSlop={3}
+                  onPress={() => startMonthTransition(1)}
+                  style={styles.dueCalendarArrow}
+                >
+                  <ChevronRight size={19} color="#6C5750" />
+                </Pressable>
+              </View>
+            </View>
+            <View style={styles.dueCalendarWeekdays}>
+              {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((weekday, index) => (
+                <Text key={`${weekday}-${index}`} style={styles.dueCalendarWeekday}>
+                  {weekday}
+                </Text>
+              ))}
+            </View>
+            <View
+              style={styles.dueCalendarGridViewport}
+              {...calendarPanResponder.panHandlers}
+            >
+              {incomingMonth ? (
+                <>
+                <Animated.View
+                  pointerEvents="none"
+                  style={[
+                    styles.dueCalendarGridLayer,
+                    {
+                      transform: [{
+                        translateX: monthProgress.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, -monthDirection * viewportWidth],
+                        }),
+                      }],
+                    },
+                  ]}
+                >
+                  {renderCalendarGrid(visibleMonth)}
+                </Animated.View>
+                <Animated.View
+                  style={[
+                    styles.dueCalendarGridLayer,
+                    {
+                      transform: [{
+                        translateX: monthProgress.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [monthDirection * viewportWidth, 0],
+                          }),
+                      }],
+                    },
+                  ]}
+                >
+                  {renderCalendarGrid(incomingMonth)}
+                </Animated.View>
+                </>
+              ) : (
+                <View style={styles.dueCalendarGridLayer}>
+                  {renderCalendarGrid(visibleMonth)}
+                </View>
+              )}
+            </View>
+          </View>
+
+          </ScrollView>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Done choosing due date"
+            onPress={handleDone}
+            style={({ pressed }) => [
+              styles.secondarySheetCta,
+              styles.dueSetCta,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text style={styles.secondarySheetCtaText}>DONE</Text>
+          </Pressable>
+        </Animated.View>
+      </View>
+  );
+}
+
 function DueRow({
   dueAt,
   dueHasTime,
   onPress,
   compact = false,
+  grouped = false,
 }: {
   dueAt?: string;
   dueHasTime: boolean;
   onPress: () => void;
   compact?: boolean;
+  grouped?: boolean;
 }) {
   const presentation = formatDue(dueAt, dueHasTime, false);
   return (
@@ -1385,19 +1967,20 @@ function DueRow({
       style={({ pressed }) => [
         styles.dueRow,
         compact && styles.dueRowCompact,
+        grouped && styles.newGoalSettingRow,
         pressed && styles.pressed,
       ]}
     >
-      <View style={styles.dueRowIcon}>
-        <CalendarDays size={16} color="#71717A" />
+      <View style={[styles.dueRowIcon, grouped && styles.newGoalSettingIcon]}>
+        <CalendarDays size={16} color={grouped ? '#92736A' : '#71717A'} />
       </View>
-      <View style={styles.dueRowCopy}>
-        <Text style={styles.dueRowLabel}>Due</Text>
-        <Text style={styles.dueRowValue}>
+      <View style={[styles.dueRowCopy, grouped && styles.newGoalSettingCopy]}>
+        <Text style={[styles.dueRowLabel, grouped && styles.newGoalSettingLabel]}>Due</Text>
+        <Text style={[styles.dueRowValue, grouped && styles.newGoalSettingValue]} numberOfLines={1}>
           {presentation?.label ?? 'No due date'}
         </Text>
       </View>
-      <ChevronRight size={16} color="#A1A1AA" />
+      <ChevronRight size={16} color={grouped ? '#987A71' : '#A1A1AA'} />
     </Pressable>
   );
 }
@@ -1418,10 +2001,12 @@ function TogetherRow({
   mode,
   connection,
   onPress,
+  grouped = false,
 }: {
   mode: GoalCollaborationMode;
   connection?: Connection;
   onPress: () => void;
+  grouped?: boolean;
 }) {
   return (
     <Pressable
@@ -1430,25 +2015,28 @@ function TogetherRow({
         styles.dueRow,
         styles.dueRowCompact,
         styles.togetherRowCompact,
+        grouped && styles.newGoalSettingRow,
+        grouped && styles.newGoalSettingRowLast,
         pressed && styles.pressed,
       ]}
     >
-      <View style={styles.dueRowIcon}>
-        <Users size={16} color="#71717A" />
+      <View style={[styles.dueRowIcon, grouped && styles.newGoalSettingIcon]}>
+        <Users size={16} color={grouped ? '#92736A' : '#71717A'} />
       </View>
-      <View style={styles.dueRowCopy}>
-        <Text style={styles.dueRowLabel}>Doing this</Text>
-        <Text style={styles.dueRowValue} numberOfLines={1}>
+      <View style={[styles.dueRowCopy, grouped && styles.newGoalSettingCopy]}>
+        <Text style={[styles.dueRowLabel, grouped && styles.newGoalSettingLabel]}>Doing This</Text>
+        <Text style={[styles.dueRowValue, grouped && styles.newGoalSettingValue]} numberOfLines={1}>
           {collaborationLabel(mode, connection)}
         </Text>
       </View>
-      <ChevronRight size={16} color="#A1A1AA" />
+      <ChevronRight size={16} color={grouped ? '#987A71' : '#A1A1AA'} />
     </Pressable>
   );
 }
 
 function TogetherChooserSheet({
   visible,
+  dismissRequest,
   value,
   personId,
   connections,
@@ -1457,6 +2045,7 @@ function TogetherChooserSheet({
   onClose,
 }: {
   visible: boolean;
+  dismissRequest: number;
   value: GoalCollaborationMode;
   personId: string | null;
   connections: Connection[];
@@ -1465,28 +2054,26 @@ function TogetherChooserSheet({
   onClose: () => void;
 }) {
   const insets = useSafeAreaInsets();
-  const sheetY = useRef(new Animated.Value(36)).current;
+  const { height: viewportHeight } = useWindowDimensions();
+  const sheetY = useRef(new Animated.Value(viewportHeight)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
   const closingRef = useRef(false);
   const [personMode, setPersonMode] = useState<
     Exclude<GoalCollaborationMode, 'private'> | null
   >(null);
-  const [pendingSelection, setPendingSelection] = useState<{
-    mode: GoalCollaborationMode;
-    userId: string | null;
-  } | null>(null);
+  const [draftMode, setDraftMode] = useState<GoalCollaborationMode>(value);
 
   useEffect(() => {
     if (!visible) return;
     closingRef.current = false;
     setPersonMode(null);
-    setPendingSelection(null);
-    sheetY.setValue(36);
+    setDraftMode(value);
+    sheetY.setValue(viewportHeight);
     backdropOpacity.setValue(0);
     Animated.parallel([
       Animated.timing(sheetY, {
         toValue: 0,
-        duration: 220,
+        duration: 240,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
@@ -1497,26 +2084,23 @@ function TogetherChooserSheet({
         useNativeDriver: true,
       }),
     ]).start();
-  }, [backdropOpacity, sheetY, visible]);
-
-  if (!visible) return null;
+  }, [backdropOpacity, sheetY, viewportHeight, visible]);
 
   const dismiss = (
     selection?: { mode: GoalCollaborationMode; userId: string | null }
   ) => {
     if (closingRef.current) return;
-    if (selection) setPendingSelection(selection);
     closingRef.current = true;
     Animated.parallel([
       Animated.timing(sheetY, {
-        toValue: 36,
-        duration: 170,
+        toValue: viewportHeight,
+        duration: 240,
         easing: Easing.in(Easing.cubic),
         useNativeDriver: true,
       }),
       Animated.timing(backdropOpacity, {
         toValue: 0,
-        duration: 150,
+        duration: 200,
         easing: Easing.in(Easing.quad),
         useNativeDriver: true,
       }),
@@ -1528,49 +2112,36 @@ function TogetherChooserSheet({
     });
   };
 
-  const soleConnection = connections.length === 1 ? connections[0] : null;
+  useEffect(() => {
+    if (visible && dismissRequest > 0) dismiss();
+  }, [dismissRequest]);
+
+  if (!visible) return null;
+
   const choices: Array<{
     mode: GoalCollaborationMode;
     eyebrow: string;
-    title: string;
     copy: string;
   }> = [
     {
       mode: 'private',
       eyebrow: 'JUST ME',
-      title: 'Just me',
-      copy: "This one's mine",
+      copy: "I’m doing this for myself.",
     },
     {
       mode: 'shared',
       eyebrow: 'TOGETHER',
-      title: 'Together',
-      copy: "We're doing this together",
+      copy: "We're working toward this together.",
     },
     {
       mode: 'supported',
-      eyebrow: 'SUPPORT',
-      title: 'Support me',
-      copy: "I'm doing it — they're in my corner",
+      eyebrow: 'SUPPORT ME',
+      copy: "I’m doing this, with someone in my corner.",
     },
-  ].filter(
-    (choice) => choice.mode === 'private' || connections.length > 0
-  ) as Array<{
-    mode: GoalCollaborationMode;
-    eyebrow: string;
-    title: string;
-    copy: string;
-  }>;
+  ];
 
   return (
-    <Modal
-      transparent
-      visible
-      animationType="none"
-      statusBarTranslucent
-      onRequestClose={() => dismiss()}
-    >
-      <View style={styles.duePickerRoot}>
+      <View style={styles.newGoalChildSheetRoot}>
         <Animated.View
           style={[
             styles.togetherChooserBackdrop,
@@ -1592,23 +2163,21 @@ function TogetherChooserSheet({
           ]}
         >
           <View style={styles.dragHandleArea}>
-            <View style={styles.grabber} />
+            <View style={[styles.grabber, styles.secondarySheetGrabber]} />
           </View>
           <View style={styles.togetherChooserHeader}>
-            <View>
-              <Text style={styles.duePickerKicker}>DOING THIS</Text>
-              <Text style={styles.togetherChooserTitle}>
-                {personMode ? 'Who’s in this with you?' : 'How are you doing this?'}
-              </Text>
-            </View>
+            <Text style={styles.togetherChooserTitle}>
+              {personMode ? 'Who’s in this with you?' : 'Doing this'}
+            </Text>
             <Pressable
               onPress={() => dismiss()}
+              hitSlop={6}
               style={({ pressed }) => [
-                styles.close,
+                styles.secondarySheetClose,
                 pressed && styles.pressed,
               ]}
             >
-              <X size={18} color="#52525B" />
+              <X size={22} color="#5F4D47" />
             </Pressable>
           </View>
           <View style={styles.togetherChoices}>
@@ -1653,46 +2222,56 @@ function TogetherChooserSheet({
                 </Pressable>
               );
             }) : choices.map((choice) => {
-              const selected =
-                choice.mode === (pendingSelection?.mode ?? value) &&
-                (choice.mode === 'private' || (pendingSelection?.userId ?? personId) !== null);
+              const selected = choice.mode === draftMode;
+              const identityStyle = choice.mode === 'private'
+                ? styles.togetherChoicePrivate
+                : choice.mode === 'shared'
+                  ? styles.togetherChoiceShared
+                  : styles.togetherChoiceSupported;
               return (
                 <Pressable
                   key={choice.mode}
-                  onPress={() => {
-                    if (choice.mode === 'private') {
-                      dismiss({ mode: 'private', userId: null });
-                    } else if (soleConnection) {
-                      dismiss({ mode: choice.mode, userId: soleConnection.userId });
-                    } else {
-                      setPersonMode(choice.mode);
-                    }
-                  }}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected }}
+                  onPress={() => setDraftMode(choice.mode)}
                   style={({ pressed }) => [
                     styles.togetherChoice,
-                    selected && styles.togetherChoiceSelected,
+                    styles.togetherModeChoice,
+                    selected && identityStyle,
                     pressed && styles.pressed,
                   ]}
                 >
-                  <View style={styles.togetherChoiceModeIcon}>
+                  <View style={[
+                    styles.togetherChoiceModeIcon,
+                    choice.mode === 'private'
+                      ? styles.togetherIconPrivate
+                      : choice.mode === 'shared'
+                        ? styles.togetherIconShared
+                        : styles.togetherIconSupported,
+                  ]}>
                     {choice.mode === 'private' ? (
-                      <User size={16} color="#71717A" strokeWidth={2.3} />
+                      <User size={20} color="#B84A36" strokeWidth={2.4} />
                     ) : choice.mode === 'shared' ? (
-                      <Users size={16} color="#8170B1" strokeWidth={2.3} />
+                      <Users size={20} color="#8B7100" strokeWidth={2.4} />
                     ) : (
-                      <Heart size={16} color="#A56D55" strokeWidth={2.3} />
+                      <HeartHandshake size={20} color="#147F78" strokeWidth={2.4} />
                     )}
                   </View>
                   <View style={styles.togetherChoiceCopy}>
-                    <Text style={styles.togetherChoiceEyebrow}>{choice.eyebrow}</Text>
-                    <Text style={styles.togetherChoiceTitle}>{choice.title}</Text>
-                    <Text style={styles.togetherChoiceDescription}>{choice.copy}</Text>
+                    <Text style={styles.togetherModeTitle}>{choice.eyebrow}</Text>
+                    <Text style={styles.togetherModeDescription}>{choice.copy}</Text>
                   </View>
                   <View style={[
-                    styles.togetherChoiceCheck,
-                    selected && styles.togetherChoiceCheckSelected,
+                    styles.togetherModeRadio,
+                    selected && (
+                      choice.mode === 'supported'
+                        ? styles.togetherModeRadioSupported
+                        : choice.mode === 'shared'
+                          ? styles.togetherModeRadioShared
+                          : styles.togetherModeRadioSelected
+                    ),
                   ]}>
-                    {selected && <Check size={13} color="#FFFFFF" strokeWidth={3} />}
+                    {selected && <View style={styles.togetherChoiceRadioDot} />}
                   </View>
                 </Pressable>
               );
@@ -1702,7 +2281,7 @@ function TogetherChooserSheet({
                 <Text style={styles.togetherChooserBackText}>Back</Text>
               </Pressable>
             )}
-            {!personMode && connections.length === 0 && (
+            {personMode && connections.length === 0 && (
               <View style={styles.togetherNoConnections}>
                 <Text style={styles.togetherNoConnectionsText}>
                   Invite someone before sharing or asking for support. Existing goals stay private.
@@ -1719,9 +2298,27 @@ function TogetherChooserSheet({
               </View>
             )}
           </View>
+          {!personMode && (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => {
+                if (draftMode === 'private') {
+                  dismiss({ mode: 'private', userId: null });
+                  return;
+                }
+                setPersonMode(draftMode);
+              }}
+              style={({ pressed }) => [
+                styles.secondarySheetCta,
+                styles.togetherContinue,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={styles.secondarySheetCtaText}>CONTINUE</Text>
+            </Pressable>
+          )}
         </Animated.View>
       </View>
-    </Modal>
   );
 }
 
@@ -7516,6 +8113,8 @@ function NewGoalModal({
   }, [setTransitionState]);
   const [duePickerOpen, setDuePickerOpen] = useState(false);
   const [togetherPickerOpen, setTogetherPickerOpen] = useState(false);
+  const [dueDismissRequest, setDueDismissRequest] = useState(0);
+  const [togetherDismissRequest, setTogetherDismissRequest] = useState(0);
   const lifecycleRef = useRef(0);
   const submittingSessionRef = useRef(session);
   const openFrameRef = useRef<number | null>(null);
@@ -8834,7 +9433,17 @@ Animated.timing(
       visible={modalMounted}
       animationType="none"
       statusBarTranslucent
-      onRequestClose={() => dismiss('system')}
+      onRequestClose={() => {
+        if (duePickerOpen) {
+          setDueDismissRequest((request) => request + 1);
+          return;
+        }
+        if (togetherPickerOpen) {
+          setTogetherDismissRequest((request) => request + 1);
+          return;
+        }
+        dismiss('system');
+      }}
       onShow={handleNativeModalShow}
       onDismiss={onNativeModalDismissed}
     >
@@ -9059,39 +9668,32 @@ Animated.timing(
               }}
             >
               <View
-                style={styles.grabber}
+                style={[styles.grabber, styles.newGoalGrabber]}
               />
             </View>
 
             {/* HEADER */}
 
             <View
-              style={styles.sheetHead}
+              style={styles.newGoalSheetHead}
             >
-              <View>
-                <Text
-                  style={
-                    styles.sheetTitle
-                  }
-                >
-                  New Goal
-                </Text>
-              </View>
+              <Text style={styles.newGoalSheetTitle}>New Goal</Text>
 
               <Pressable
                 disabled={transitionState !== 'open'}
                 onPress={() => dismiss('x')}
+                hitSlop={6}
                 style={({
                   pressed,
                 }) => [
-                  styles.close,
+                  styles.newGoalClose,
                   pressed &&
                     styles.pressed,
                 ]}
               >
                 <X
-                  size={18}
-                  color="#52525B"
+                  size={19}
+                  color="#675751"
                 />
               </Pressable>
             </View>
@@ -9152,18 +9754,21 @@ Animated.timing(
               <Text
                 style={styles.label}
               >
-                What do you want to move
-                forward?
+                WHAT DO YOU WANT TO MOVE FORWARD?
               </Text>
 
               <TextInput
                 value={title}
                 onChangeText={setTitle}
 
-                placeholder="e.g. Finish homepage copy"
-                placeholderTextColor="#A1A1AA"
+                placeholder="e.g. Run 5K without stopping"
+                placeholderTextColor="#9A918C"
 
                 style={styles.input}
+
+                multiline
+                blurOnSubmit
+                textAlignVertical="top"
 
                 returnKeyType="done"
 
@@ -9182,7 +9787,7 @@ Animated.timing(
               <Text
                 style={styles.label}
               >
-                Category
+                CATEGORY
               </Text>
 
               <View
@@ -9195,6 +9800,13 @@ Animated.timing(
                 ).filter((item) => item !== 'quick').map((item) => {
                   const active =
                     category === item;
+                  const CategoryIcon =
+                    item === 'work' ? Briefcase
+                      : item === 'life' ? Heart
+                        : item === 'health' ? Leaf
+                          : item === 'money' ? WalletCards
+                            : Sprout;
+                  const categoryVisual = categoryColors[item];
                     
                   return (
                     <Pressable
@@ -9209,42 +9821,32 @@ Animated.timing(
                         {
                           backgroundColor:
                             active
-                              ? COLORS[
-                                  item
-                                ].surface
-                              : '#F7F7F8',
+                              ? categoryVisual.accent
+                              : categoryVisual.surfaceSoft,
 
                           borderColor:
                             active
-                              ? `${COLORS[item].accent}55`
-                              : '#E4E4E7',
+                              ? categoryVisual.accent
+                              : categoryVisual.surface,
                         },
                       ]}
                     >
-                      <View
-                        style={[
-                          styles.chipDot,
-                          {
-                            backgroundColor:
-                              COLORS[
-                                item
-                              ].accent,
-                          },
-                        ]}
+                      <CategoryIcon
+                        size={15}
+                        strokeWidth={2.15}
+                        color={active ? '#FFFFFF' : categoryVisual.accent}
                       />
 
                       <Text
                         style={{
-                          fontSize: 10,
+                          fontSize: 12,
                           fontWeight:
                             '800',
 
                           color:
                             active
-                              ? COLORS[
-                                  item
-                                ].strong
-                              : '#71717A',
+                              ? '#FFFFFF'
+                              : categoryVisual.onSurface,
                         }}
                       >
                         {
@@ -9258,26 +9860,30 @@ Animated.timing(
                 })}
               </View>
 
-              <DueRow
-                dueAt={dueAt}
-                dueHasTime={dueHasTime}
-                compact
-                onPress={() => {
-                  Keyboard.dismiss();
-                  setDuePickerOpen(true);
-                }}
-              />
+              <View style={styles.newGoalSettingsGroup}>
+                <DueRow
+                  dueAt={dueAt}
+                  dueHasTime={dueHasTime}
+                  compact
+                  grouped
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    setDuePickerOpen(true);
+                  }}
+                />
 
-              <TogetherRow
-                mode={collaborationMode}
-                connection={connections.find(
-                  (connection) => connection.userId === collaborationPersonId
-                )}
-                onPress={() => {
-                  Keyboard.dismiss();
-                  setTogetherPickerOpen(true);
-                }}
-              />
+                <TogetherRow
+                  mode={collaborationMode}
+                  connection={connections.find(
+                    (connection) => connection.userId === collaborationPersonId
+                  )}
+                  grouped
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    setTogetherPickerOpen(true);
+                  }}
+                />
+              </View>
 
               <Pressable
                 disabled={
@@ -9291,20 +9897,27 @@ Animated.timing(
                   styles.create,
 
                   (!title.trim() || submitting) &&
-  styles.disabled,
+  styles.newGoalDisabled,
 
                   pressed &&
                     styles.pressed,
                 ]}
               >
                 <Text
-                  style={
-                    styles.createText
-                  }
+                  style={[
+                    styles.createText,
+                    (!title.trim() || submitting) && styles.createTextDisabled,
+                  ]}
                 >
                   Create Goal
                 </Text>
               </Pressable>
+              <View style={styles.newGoalHelper}>
+                <Sparkles size={13} color={colors.coralStrong} strokeWidth={2.4} />
+                <Text style={styles.newGoalHelperText}>
+                  Sunday creates your first small steps automatically.
+                </Text>
+              </View>
               </Animated.View>
               </ScrollView>
               </Animated.View>
@@ -9719,8 +10332,9 @@ opacity: submitPreviewOpacity,
   </Animated.View>
   </Animated.View>
 )}
-    <DueDatePickerSheet
+    <NewGoalDueDatePickerSheet
       visible={duePickerOpen}
+      dismissRequest={dueDismissRequest}
       dueAt={dueAt}
       dueHasTime={dueHasTime}
       onChange={setDue}
@@ -9728,6 +10342,7 @@ opacity: submitPreviewOpacity,
     />
     <TogetherChooserSheet
       visible={togetherPickerOpen}
+      dismissRequest={togetherDismissRequest}
       value={collaborationMode}
       personId={collaborationPersonId}
       connections={connections}
@@ -10248,16 +10863,16 @@ const styles = StyleSheet.create({
   newGoalAdaptiveCard: {
     width: '100%',
 
-    backgroundColor: colors.surface,
+    backgroundColor: '#F8F3EA',
   
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
+    borderTopLeftRadius: 34,
+    borderTopRightRadius: 34,
   
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
   
-    paddingHorizontal: 19,
-    paddingTop: 9,
+    paddingHorizontal: 25,
+    paddingTop: 8,
   
     paddingBottom:
       Platform.OS === 'ios'
@@ -10273,9 +10888,9 @@ const styles = StyleSheet.create({
       height: -4,
     },
   
-    shadowOpacity: 0.12,
-    shadowRadius: 24,
-    elevation: 12,
+    shadowOpacity: 0.06,
+    shadowRadius: 18,
+    elevation: 5,
   },
   submitGoalPreview: {
     position: 'absolute',
@@ -10362,7 +10977,7 @@ const styles = StyleSheet.create({
   },
   
   newGoalScrollContent: {
-    paddingBottom: 16,
+    paddingBottom: 18,
   },
   scroll: {
     paddingBottom: 12,
@@ -11494,6 +12109,59 @@ const styles = StyleSheet.create({
     marginTop: 0,
   },
 
+  newGoalSettingsGroup: {
+    marginTop: 18,
+    marginBottom: 27,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: '#EAE1D8',
+    backgroundColor: '#FFFDFC',
+    overflow: 'hidden',
+  },
+
+  newGoalSettingRow: {
+    minHeight: 56,
+    marginTop: 0,
+    marginBottom: 0,
+    paddingHorizontal: 15,
+    borderWidth: 0,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#E8DED5',
+    borderRadius: 0,
+    backgroundColor: 'transparent',
+  },
+
+  newGoalSettingRowLast: {
+    borderBottomWidth: 0,
+  },
+
+  newGoalSettingIcon: {
+    backgroundColor: '#F6EFEA',
+  },
+
+  newGoalSettingCopy: {
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+
+  newGoalSettingLabel: {
+    color: '#3C3532',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+
+  newGoalSettingValue: {
+    flexShrink: 1,
+    color: '#8B716A',
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 0,
+    textAlign: 'right',
+  },
+
   dueRowIcon: {
     width: 32,
     height: 32,
@@ -11526,6 +12194,12 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
 
+  newGoalChildSheetRoot: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'flex-end',
+    zIndex: 50,
+  },
+
   duePickerBackdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(24,24,27,0.38)',
@@ -11535,7 +12209,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
 
-  duePickerSheet: {
+  legacyDuePickerSheet: {
     paddingHorizontal: 19,
     paddingTop: 9,
     paddingBottom: 22,
@@ -11549,11 +12223,49 @@ const styles = StyleSheet.create({
     elevation: 12,
   },
 
-  duePickerHeader: {
+  legacyDuePickerHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 14,
+  },
+
+  legacyDuePickerTitle: {
+    color: '#27272A',
+    fontSize: 18,
+    fontWeight: '900',
+    marginTop: 3,
+  },
+
+  duePickerSheet: {
+    width: '100%',
+    maxHeight: '96%',
+    paddingHorizontal: 22,
+    paddingTop: 6,
+    paddingBottom: 22,
+    borderTopLeftRadius: 34,
+    borderTopRightRadius: 34,
+    backgroundColor: '#FFFDFB',
+    shadowColor: colors.warmShadow,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 6,
+  },
+
+  duePickerContent: {
+    paddingBottom: 0,
+  },
+
+  duePickerScroll: {
+    flexShrink: 1,
+  },
+
+  duePickerHeader: {
+    minHeight: 43,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
   },
 
   duePickerKicker: {
@@ -11564,10 +12276,12 @@ const styles = StyleSheet.create({
   },
 
   duePickerTitle: {
-    color: '#27272A',
-    fontSize: 18,
+    color: '#292522',
+    fontSize: 27,
+    lineHeight: 34,
     fontWeight: '900',
-    marginTop: 3,
+    letterSpacing: -0.65,
+    textAlign: 'center',
   },
 
   duePickerDone: {
@@ -11591,35 +12305,81 @@ const styles = StyleSheet.create({
   },
 
   togetherChooserSheet: {
-    paddingHorizontal: 19,
-    paddingTop: 9,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    backgroundColor: colors.surface,
+    paddingHorizontal: 25,
+    paddingTop: 8,
+    borderTopLeftRadius: 34,
+    borderTopRightRadius: 34,
+    backgroundColor: '#FFFDFB',
     shadowColor: colors.warmShadow,
     shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.13,
-    shadowRadius: 22,
-    elevation: 15,
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 6,
   },
 
   togetherChooserHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    marginBottom: 16,
+    minHeight: 47,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
   },
 
   togetherChooserTitle: {
-    color: '#27272A',
-    fontSize: 19,
+    color: '#292522',
+    fontSize: 27,
+    lineHeight: 34,
     fontWeight: '900',
-    letterSpacing: -0.35,
-    marginTop: 3,
+    letterSpacing: -0.65,
+    textAlign: 'center',
   },
 
   togetherChoices: {
-    gap: 8,
+    gap: 10,
+  },
+
+  secondarySheetGrabber: {
+    width: 38,
+    backgroundColor: '#E4D7D1',
+    marginBottom: 8,
+  },
+
+  secondarySheetClose: {
+    position: 'absolute',
+    right: 0,
+    top: 4,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  secondarySheetCta: {
+    minHeight: 59,
+    borderRadius: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.coralStrong,
+    shadowColor: colors.coralPrimary,
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+
+  secondarySheetCtaText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '900',
+    letterSpacing: 0.15,
+  },
+
+  dueSetCta: {
+    minHeight: 54,
+    marginTop: 14,
+  },
+
+  togetherContinue: {
+    marginTop: 32,
   },
 
   togetherChooserBack: {
@@ -11672,6 +12432,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
+  togetherModeChoice: {
+    minHeight: 98,
+    paddingHorizontal: 17,
+    paddingVertical: 14,
+    borderRadius: 22,
+    borderColor: '#EFE4DF',
+    backgroundColor: '#FFFDFC',
+  },
+
+  togetherChoicePrivate: {
+    borderColor: '#F1CEC5',
+    backgroundColor: '#FFF9F7',
+  },
+
+  togetherChoiceShared: {
+    borderColor: '#E9DDAF',
+    backgroundColor: '#FFFCF1',
+  },
+
+  togetherChoiceSupported: {
+    borderColor: '#A9DCD7',
+    backgroundColor: '#F3FCFA',
+  },
+
   togetherChoiceSelected: {
     borderColor: '#CFC3EC',
     backgroundColor: '#F8F5FF',
@@ -11690,6 +12474,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#F7F5F8',
     marginRight: 10,
+  },
+
+  togetherIconPrivate: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    marginRight: 16,
+    backgroundColor: '#FFF0EC',
+  },
+
+  togetherIconShared: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    marginRight: 16,
+    backgroundColor: '#FFF4CB',
+  },
+
+  togetherIconSupported: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    marginRight: 16,
+    backgroundColor: '#D8F4F0',
   },
 
   togetherChoiceEyebrow: {
@@ -11713,6 +12521,20 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
 
+  togetherModeTitle: {
+    color: '#272321',
+    fontSize: 14,
+    fontWeight: '900',
+  },
+
+  togetherModeDescription: {
+    color: '#5F514C',
+    fontSize: 12.5,
+    lineHeight: 18,
+    fontWeight: '600',
+    marginTop: 5,
+  },
+
   togetherChoiceCheck: {
     width: 23,
     height: 23,
@@ -11729,23 +12551,89 @@ const styles = StyleSheet.create({
     backgroundColor: '#9E8BE8',
   },
 
+  togetherModeRadio: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: '#DFC9C2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 12,
+  },
+
+  togetherModeRadioSelected: {
+    borderColor: '#E76550',
+    backgroundColor: '#FF7D6C',
+  },
+
+  togetherModeRadioShared: {
+    borderColor: '#B18B00',
+    backgroundColor: '#D9AD16',
+  },
+
+  togetherModeRadioSupported: {
+    borderColor: '#148C83',
+    backgroundColor: '#35B7AD',
+  },
+
+  togetherChoiceRadioDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#FFFFFF',
+  },
+
   dueQuickChoices: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: 8,
+    marginBottom: 14,
+  },
+
+  legacyDueQuickChoices: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
   },
 
-  dueQuickChipPressable: {
+  legacyDueQuickChipPressable: {
     borderRadius: 14,
   },
 
-  dueQuickChip: {
+  dueQuickChipPressable: {
+    width: '48.2%',
+    borderRadius: 12,
+  },
+
+  legacyDueQuickChip: {
     minHeight: 36,
     paddingHorizontal: 12,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#F4F4F5',
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+
+  legacyDueQuickChipText: {
+    color: '#71717A',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+
+  dueQuickChip: {
+    width: '100%',
+    minHeight: 52,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    gap: 11,
+    backgroundColor: '#FFFCFA',
     borderWidth: 1,
     borderColor: 'transparent',
   },
@@ -11766,9 +12654,113 @@ const styles = StyleSheet.create({
   },
 
   dueQuickChipText: {
-    color: '#71717A',
-    fontSize: 10,
+    flexShrink: 1,
+    color: '#5C4943',
+    fontSize: 13,
     fontWeight: '800',
+  },
+
+  dueCalendarSurface: {
+    paddingHorizontal: 2,
+    paddingTop: 4,
+    paddingBottom: 0,
+  },
+
+  dueCalendarHeader: {
+    minHeight: 34,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+
+  dueCalendarMonth: {
+    flex: 1,
+    minWidth: 0,
+    color: '#292522',
+    fontSize: 18,
+    fontWeight: '900',
+    letterSpacing: -0.3,
+  },
+
+  dueCalendarNavigation: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+
+  dueCalendarArrow: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  dueCalendarWeekdays: {
+    flexDirection: 'row',
+  },
+
+  dueCalendarWeekday: {
+    width: '14.285714%',
+    color: '#8A726A',
+    fontSize: 11,
+    fontWeight: '700',
+    textAlign: 'center',
+    paddingVertical: 4,
+  },
+
+  dueCalendarGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+
+  dueCalendarGridViewport: {
+    position: 'relative',
+    height: 240,
+    overflow: 'hidden',
+  },
+
+  dueCalendarGridLayer: {
+    ...StyleSheet.absoluteFillObject,
+  },
+
+  dueCalendarDay: {
+    width: '14.285714%',
+    minHeight: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  dueCalendarDayCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  dueCalendarDaySelected: {
+    backgroundColor: colors.coralStrong,
+  },
+
+  dueCalendarDayText: {
+    color: '#312B28',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+
+  dueCalendarDayOutside: {
+    color: '#B9AAA4',
+  },
+
+  dueCalendarDayDisabled: {
+    color: '#DDD2CD',
+  },
+
+  dueCalendarDayTextSelected: {
+    color: '#FFFFFF',
+    fontWeight: '900',
   },
 
   dueQuickChipTextSelected: {
@@ -11827,6 +12819,12 @@ const styles = StyleSheet.create({
     gap: 10,
   },
 
+  newGoalDueSelectionSummary: {
+    minHeight: 50,
+    marginTop: 8,
+    borderRadius: 14,
+  },
+
   dueSelectionCopy: {
     flex: 1,
     minWidth: 0,
@@ -11840,6 +12838,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 5,
     backgroundColor: '#FFFFFF',
+  },
+
+  newGoalDueAddTime: {
+    minHeight: 36,
+    paddingHorizontal: 9,
   },
 
   dueAddTimeText: {
@@ -12412,6 +13415,11 @@ const styles = StyleSheet.create({
     marginBottom: 17,
   },
 
+  newGoalGrabber: {
+    backgroundColor: '#E5D7D0',
+    marginBottom: 10,
+  },
+
   detailGrabber: {
     marginBottom: 0,
   },
@@ -12422,6 +13430,34 @@ const styles = StyleSheet.create({
       'space-between',
     alignItems: 'flex-start',
     marginBottom: 12,
+  },
+
+  newGoalSheetHead: {
+    minHeight: 42,
+    marginBottom: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  newGoalSheetTitle: {
+    color: '#2C2826',
+    fontSize: 29,
+    lineHeight: 36,
+    fontWeight: '900',
+    letterSpacing: -0.9,
+    textAlign: 'center',
+  },
+
+  newGoalClose: {
+    position: 'absolute',
+    right: 0,
+    top: 3,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F2ECE4',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   sheetKicker: {
@@ -12752,41 +13788,47 @@ const styles = StyleSheet.create({
   },
 
   label: {
-    color: '#52525B',
-    fontSize: 10,
+    color: '#6D514A',
+    fontSize: 11,
+    lineHeight: 15,
     fontWeight: '800',
-    marginBottom: 8,
+    letterSpacing: 0.25,
+    marginBottom: 9,
     marginTop: 2,
   },
 
   input: {
-    height: 51,
+    minHeight: 126,
     borderWidth: 1,
-    borderColor: '#E4E4E7',
-    borderRadius: 16,
-    backgroundColor: '#FAFAFA',
-    paddingHorizontal: 14,
-    color: '#18181B',
-    fontSize: 14,
+    borderColor: '#E9E0D7',
+    borderRadius: 22,
+    backgroundColor: '#FFFDFC',
+    paddingHorizontal: 16,
+    paddingTop: 17,
+    paddingBottom: 17,
+    color: '#2E2A28',
+    fontSize: 16,
+    lineHeight: 22,
     fontWeight: '600',
-    marginBottom: 16,
+    marginBottom: 28,
   },
 
   chips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 7,
-    marginBottom: 19,
+    gap: 8,
+    marginBottom: 0,
   },
 
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    minHeight: 44,
+    gap: 7,
     borderWidth: 1,
-    borderRadius: 13,
-    paddingHorizontal: 9,
-    paddingVertical: 7,
+    borderRadius: 12,
+    paddingHorizontal: 13,
+    paddingVertical: 8,
   },
 
   chipDot: {
@@ -12796,28 +13838,55 @@ const styles = StyleSheet.create({
   },
 
   create: {
-    height: 50,
-    borderRadius: 17,
+    minHeight: 53,
+    borderRadius: 27,
     backgroundColor: colors.coralStrong,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 7,
     shadowColor: colors.coralPrimary,
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    elevation: 4,
+    shadowOpacity: 0.14,
+    shadowRadius: 8,
+    elevation: 3,
   },
 
   createText: {
     color: '#fff',
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '900',
   },
 
   disabled: {
     backgroundColor: '#D4D4D8',
     shadowOpacity: 0,
+  },
+
+  newGoalDisabled: {
+    backgroundColor: '#E5DDD4',
+    shadowOpacity: 0,
+  },
+
+  createTextDisabled: {
+    color: '#A69B93',
+  },
+
+  newGoalHelper: {
+    minHeight: 44,
+    paddingTop: 15,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    gap: 7,
+  },
+
+  newGoalHelperText: {
+    flexShrink: 1,
+    color: '#86766F',
+    fontSize: 10.5,
+    lineHeight: 15,
+    fontWeight: '600',
+    textAlign: 'center',
   },
 
   placeholder: {

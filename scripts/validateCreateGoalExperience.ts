@@ -10,7 +10,7 @@ const modal = source.slice(modalStart, modalEnd);
 const chooserStart = source.indexOf('function TogetherChooserSheet({');
 const chooserEnd = source.indexOf('\nfunction ', chooserStart + 20);
 const chooser = source.slice(chooserStart, chooserEnd);
-const dueStart = source.indexOf('function DueDatePickerSheet({');
+const dueStart = source.indexOf('function NewGoalDueDatePickerSheet({');
 const dueEnd = source.indexOf('\nfunction DueRow(', dueStart);
 const due = source.slice(dueStart, dueEnd);
 const sheetMorphTimingStart = modal.indexOf('Animated.timing(\n        sheetMorph,');
@@ -40,7 +40,8 @@ requireCondition(modal.includes('y: insets.top + 18') && modal.includes('width: 
 requireCondition(source.includes('outputRange: [1, 0.985]') && source.includes('outputRange: [0, -3]'), 'Approved Home 0.985 scale/-3px depth is missing.');
 requireCondition(modal.includes('inputRange: [0, 0.1, 0.22, 0.34, 0.46, 0.58, 1]') && modal.includes('outputRange: [0, 0, 0.0219, 0.07, 0.1181, 0.14, 0.14]'), 'Approved restrained 0.14 backdrop choreography is missing.');
 requireCondition(modal.includes('inputRange: [0, 0.72, 0.9, 1]') && modal.includes('inputRange: [0, 0.76, 0.94, 1]') && modal.includes('inputRange: [0, 0.8, 0.98, 1]'), 'Approved header/input/control reveal thresholds are missing.');
-requireCondition(source.includes("backgroundColor: colors.surface") && source.includes('shadowOpacity: 0.12') && source.includes('shadowRadius: 24'), 'The real cream Focus Rise surface is not the visible production shell.');
+requireCondition(source.includes("backgroundColor: '#F8F3EA'") && source.includes('shadowOpacity: 0.06') && source.includes('shadowRadius: 18'), 'The locked warm-cream Focus Rise surface is not the visible production shell.');
+requireCondition(modal.includes('e.g. Run 5K without stopping') && modal.includes('Sunday creates your first small steps automatically.') && modal.includes('styles.newGoalSettingsGroup'), 'Locked New Goal V1 copy or grouped settings surface is missing.');
 
 requireCondition(!source.includes("import { NewGoalMorphCanvas }") && !modal.includes('<NewGoalMorphCanvas') && !modal.includes('skiaMorphProgress') && !modal.includes('skiaCloseProgress') && !modal.includes('newGoalSkiaPlus') && !modal.includes('D3 DEBUG'), 'Obsolete D3/D4 production visuals still mount or execute.');
 requireCondition(source.includes('{__DEV__ && <NewGoalMotionLab />}'), 'Motion Lab is no longer dev-only.');
@@ -71,8 +72,20 @@ requireCondition(sourceHeightTiming.includes('useNativeDriver: false'), 'JS-only
 requireCondition(modal.includes('opacity: morphCardOpacity') && modal.includes('? sourceShellHeight') && modal.includes('maxHeight: resolvedSheetFrame.height'), 'Native visual morph values and JS-only layout height are not separated.');
 requireCondition(modal.includes("...(transitionSheetFrame ? { height: '100%' as const } : null)"), 'Native morph wrapper is constraining the pre-measurement sheet geometry.');
 
-requireCondition(chooser.includes('How are you doing this?') && chooser.includes("This one's mine") && chooser.includes("We're doing this together") && chooser.includes("I'm doing it — they're in my corner"), 'Relationship choices changed.');
-requireCondition(due.includes('selectQuickDate') && due.includes('setTimeout(closeSurface, 110)') && due.includes("pickerMode !== 'quick'"), 'Due behavior changed.');
+requireCondition(chooser.includes('Doing this') && chooser.includes('I’m doing this for myself.') && chooser.includes("We're working toward this together.") && chooser.includes('I’m doing this, with someone in my corner.') && chooser.includes('CONTINUE'), 'Locked relationship choices changed.');
+requireCondition(chooser.includes('styles.togetherChooserSheet') && chooser.includes('paddingBottom: Math.max(20, insets.bottom + 12)') && chooser.includes('transform: [{ translateY: sheetY }]'), 'Approved Doing This bottom-anchor geometry changed.');
+requireCondition(due.includes('selectQuickDate') && due.includes('normalizeDueDate(selectedDate, false)') && due.includes('sameLocalDay(date, selectedDate)') && due.includes('>DONE<'), 'Locked synchronized date-only Due Date behavior changed.');
+requireCondition(due.includes('Array.from({ length: 42 }') && due.includes('styles.dueCalendarGridViewport') && due.includes('scrollEnabled={viewportHeight < 700}'), 'Fixed six-row Due Date calendar contract changed.');
+requireCondition(due.includes('duration: 260') && due.includes('translateX: monthProgress.interpolate') && due.includes('if (monthAnimatingRef.current) return;'), 'Due Date month paging motion or rapid-input protection changed.');
+requireCondition(due.includes('setIncomingMonth(nextMonth)') && due.includes('requestAnimationFrame(() => {') && due.includes('setVisibleMonth(nextMonth);\n        setIncomingMonth(null);') && due.includes('if (!incomingMonth && !monthAnimatingRef.current)'), 'Due Date pager can reset before its incoming grid becomes canonical.');
+requireCondition(due.includes('incomingMonth ? (') && due.includes('renderCalendarGrid(visibleMonth)') && due.includes('renderCalendarGrid(incomingMonth)') && due.includes(': (\n                <View style={styles.dueCalendarGridLayer}>'), 'Due Date pager can render an empty calendar viewport.');
+requireCondition(due.includes('const monthLabel = (incomingMonth ?? visibleMonth).toLocaleDateString'), 'Due Date month header is not synchronized with the incoming pager month.');
+requireCondition(!due.includes('Add due time') && !due.includes('Change due time') && !due.includes('styles.newGoalDueSelectionSummary'), 'Removed New Goal due-time UI returned.');
+requireCondition(due.indexOf('</ScrollView>') < due.indexOf('>DONE<'), 'Due Date CTA must remain outside the clipped scroll viewport.');
+requireCondition(!due.includes('styles.duePickerMotionShell') && due.includes('styles.duePickerSheet') && due.includes('transform: [{ translateY: sheetY }]') && due.includes('paddingBottom: Math.max(16, insets.bottom + 8)'), 'Due Date sheet no longer uses the flush-bottom surface anchor with internal safe-area padding.');
+requireCondition(!due.includes('<Modal') && !chooser.includes('<Modal') && due.includes('styles.newGoalChildSheetRoot') && chooser.includes('styles.newGoalChildSheetRoot'), 'New Goal child sheets crossed a native Modal boundary.');
+requireCondition(due.includes('toValue: viewportHeight') && chooser.includes('toValue: viewportHeight') && due.includes('opacity: backdropOpacity') && chooser.includes('opacity: backdropOpacity'), 'Child sheet dismissal or backdrop continuity is incomplete.');
+requireCondition(modal.includes('dismissRequest={dueDismissRequest}') && modal.includes('dismissRequest={togetherDismissRequest}') && modal.includes('if (duePickerOpen)') && modal.includes('if (togetherPickerOpen)'), 'System dismissal is not routed through the active child sheet lifecycle.');
 requireCondition(source.includes("'Goal created'"), 'Creation confirmation changed.');
 
 let state: 'closed' | 'preparingOpen' | 'opening' | 'open' | 'closing' | 'handoffToFab' = 'closed';
