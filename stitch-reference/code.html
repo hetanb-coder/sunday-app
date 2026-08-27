@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sunday - Home</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&amp;family=Epilogue:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "error": "#ba1a1a",
+                        "background": "#fff8f5",
+                        "on-secondary-fixed-variant": "#574500",
+                        "outline": "#8a716c",
+                        "on-primary": "#ffffff",
+                        "secondary": "#735c00",
+                        "secondary-fixed-dim": "#e7c353",
+                        "outline-variant": "#dec0ba",
+                        "inverse-surface": "#34302c",
+                        "primary-fixed-dim": "#ffb4a5",
+                        "on-surface": "#1e1b18",
+                        "secondary-container": "#fcd664",
+                        "tertiary-container": "#00b9a1",
+                        "surface-dim": "#e1d8d4",
+                        "tertiary": "#006b5c",
+                        "surface-tint": "#a43c28",
+                        "on-surface-variant": "#57423e",
+                        "on-secondary": "#ffffff",
+                        "surface-container-highest": "#e9e1dc",
+                        "on-secondary-fixed": "#241a00",
+                        "surface-container-low": "#fbf2ed",
+                        "surface-variant": "#e9e1dc",
+                        "on-primary-container": "#731808",
+                        "surface-bright": "#fff8f5",
+                        "on-tertiary-fixed": "#00201b",
+                        "error-container": "#ffdad6",
+                        "surface": "#fff8f5",
+                        "tertiary-fixed-dim": "#4adcc3",
+                        "on-error": "#ffffff",
+                        "on-primary-fixed-variant": "#842413",
+                        "primary-container": "#ff7f66",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary-container": "#745c00",
+                        "surface-container-high": "#efe6e2",
+                        "surface-container": "#f5ece7",
+                        "secondary-fixed": "#ffe088",
+                        "on-background": "#1e1b18",
+                        "primary-fixed": "#ffdad3",
+                        "on-tertiary-fixed-variant": "#005045",
+                        "on-primary-fixed": "#3f0400",
+                        "primary": "#a43c28",
+                        "on-error-container": "#93000a",
+                        "inverse-on-surface": "#f8efea",
+                        "inverse-primary": "#ffb4a5",
+                        "tertiary-fixed": "#6cf9df",
+                        "on-tertiary-container": "#004339"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px",
+                        "2xl": "24px"
+                    },
+                    "spacing": {
+                        "section-margin": "40px",
+                        "gutter": "16px",
+                        "base": "8px",
+                        "container-padding": "24px",
+                        "card-gap": "20px"
+                    },
+                    "fontFamily": {
+                        "label-md": ["Manrope"],
+                        "label-sm": ["Manrope"],
+                        "title-lg": ["Manrope"],
+                        "body-md": ["Manrope"],
+                        "display-lg": ["Epilogue"],
+                        "headline-md": ["Epilogue"],
+                        "headline-lg": ["Epilogue"],
+                        "body-lg": ["Manrope"]
+                    },
+                    "fontSize": {
+                        "label-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "label-sm": ["12px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "title-lg": ["20px", { "lineHeight": "28px", "fontWeight": "700" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "display-lg": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "headline-lg": ["32px", { "lineHeight": "38px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "headline-lg-mobile": ["28px", { "lineHeight": "34px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            background-color: #FDFBF7; /* Sunday Vanilla Concept */
+            color: #1e1b18;
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        .ambient-glow {
+            position: absolute;
+            top: -100px;
+            right: -100px;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(255, 122, 89, 0.15) 0%, rgba(255, 122, 89, 0) 70%);
+            border-radius: 50%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .editorial-divider {
+            border-bottom: 1px solid #F1EEE4;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="min-h-screen relative overflow-x-hidden font-body-md text-body-md bg-background pb-32">
+<!-- Ambient Background Glow -->
+<div class="ambient-glow"></div>
+<!-- Top App Bar (Shared Component Semantic Interpretation) -->
+<header class="flex justify-between items-center px-container-padding h-16 w-full relative z-10 pt-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full overflow-hidden border border-outline-variant">
+<img class="w-full h-full object-cover" data-alt="A close up, high quality profile picture of a young professional in a softly lit, warm environment, natural light, premium photography style, subtle Sunday aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB-P-YQtS0uoYU7rSu3NExu63P9sKg5DgSdZmZHftQPeSKfi32qtNLZhQaP8GtQJP0-SebSXLWz5qUtBq8IQk2iwD9hcyIADvLpejwrgLTxZuIXVq008XNkWy4dynWNJ_NUbI12WmJUXg-mUpQ-hxOZAO1MBrVqPaCTH5xnBFi0X5MHx01UrvCYds6cjT1GYdN-XHuVH_ccOXDS-kwE6SgS1TArxqBsTgs0qbaVO55md3NwgdN9Mavj"/>
+</div>
+</div>
+<div class="font-headline-lg-mobile md:font-headline-lg text-primary tracking-tight font-bold">
+            Sunday
+        </div>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant">notifications</span>
+</button>
+</header>
+<main class="px-container-padding relative z-10 flex flex-col gap-section-margin pt-6 max-w-md mx-auto">
+<!-- Header -->
+<section>
+<h1 class="font-title-lg text-title-lg text-on-surface mb-1">Good evening, Alex.</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">6 small steps left today</p>
+</section>
+<!-- Current Focus (Hero) -->
+<section class="relative">
+<div class="flex items-center justify-between mb-4">
+<span class="font-label-sm text-label-sm uppercase text-on-surface-variant tracking-widest">Current Focus</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant bg-surface-container py-1 px-3 rounded-full">Work · 20 min</span>
+</div>
+<h2 class="font-display-lg text-display-lg text-on-surface mb-8 leading-tight">
+                Establish a consistent morning writing habit.
+            </h2>
+<div class="flex items-start gap-4 editorial-divider pb-8">
+<button class="w-10 h-10 rounded-full border-2 border-primary flex items-center justify-center shrink-0 mt-1 hover:bg-primary-container transition-colors group" style="border-color: #FF7A59;"><span class="material-symbols-outlined text-primary" style="font-size: 24px; color: #FF7A59;">check</span></button>
+<div class="flex-1">
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase mb-1">Next Step</p>
+<p class="font-body-lg text-body-lg text-on-surface">Write 500 words</p>
+</div>
+<div class="flex items-center gap-2 bg-surface-container-low px-3 py-1.5 rounded-full border border-surface-variant">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Supported</span>
+<img class="w-5 h-5 rounded-full object-cover" data-alt="A tiny, circular profile avatar of a smiling friend in a bright, warm setting, high quality." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDLWAkveXJFOjZt3ImxuDwHVunzmvsUwBYz6WG67I49Ksv1Eojw0AYctg45QX8xpw69r5SQ-MHZ2_aiZxaOIBTDqKjrAPlUXmNZpvLyHS55x01iX4j7qeqjzUZrn21I8-JFgRpGkBbPsuVsUnJBjRJ11nC_SUEpC-fEQC2-FWsnW1aIJjjj3YAFUvbv_DpKm2DzShkjx1Zkk1h-uglunjPmsIoo5PbenwTZ-gnBxA6w6dro7dh7qEIu"/>
+</div>
+</div>
+</section>
+<!-- Other Goals -->
+<section>
+<div class="flex justify-between items-center mb-6">
+<h3 class="font-label-sm text-label-sm uppercase text-on-surface-variant tracking-widest">Other Goals · 4</h3>
+<button class="font-label-md text-label-md text-primary hover:underline">View all</button>
+</div>
+<div class="flex flex-col">
+<!-- Goal Row 1 -->
+<div class="flex items-center justify-between py-5 editorial-divider group cursor-pointer hover:bg-surface-container-lowest/50 transition-colors -mx-4 px-4 rounded-xl">
+<div>
+<h4 class="font-headline-md text-headline-md text-on-surface mb-1">Run a 10k</h4>
+<p class="font-body-md text-body-md text-on-surface-variant">Fitness · Next: 5k run tomorrow</p>
+</div>
+<div class="flex -space-x-2">
+<img class="w-8 h-8 rounded-full border-2 border-background object-cover" data-alt="A small circular avatar of a running partner." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAmN6sEFAnjuaUA8EfbRxVQp-LYy2GUhNg50K3BAGYXpyudcbf0il0kidHa7NP2-OPyJIzrppMWIspcmnB0SsHDz9im2a1Kmf4yZ4dG2G48E8wOnJxpfzz3vmHBPKzEK2Q94_4VCdP_K1dyCLOR2giiHjemRcCCOkYEt4Hg33eKMAnDKW969MtdmBbU9tK5iwhafXGQ5oyyIz_fcTlO5J_lHG2WxV1Cld8JcirLGgiSalsIhbKx_-pz"/>
+<div class="w-8 h-8 rounded-full border-2 border-background bg-secondary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-on-secondary-container" style="font-size: 16px;">bolt</span>
+</div>
+</div><span class="material-symbols-outlined ml-4" style="color: #FF7A59;">arrow_forward</span>
+</div>
+<!-- Goal Row 2 -->
+<div class="flex items-center justify-between py-5 editorial-divider group cursor-pointer hover:bg-surface-container-lowest/50 transition-colors -mx-4 px-4 rounded-xl border-t">
+<div>
+<h4 class="font-headline-md text-headline-md text-on-surface mb-1">Read 2 books</h4>
+<p class="font-body-md text-body-md text-on-surface-variant">Growth · Next: Read Chapter 4</p>
+</div>
+<div class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center">
+<span class="material-symbols-outlined text-on-surface-variant" style="font-size: 16px;">menu_book</span>
+</div><span class="material-symbols-outlined ml-4" style="color: #FF7A59;">arrow_forward</span>
+</div>
+</div>
+</section>
+<!-- Completed Goals -->
+<section class="pt-4">
+<button class="w-full flex justify-between items-center py-4 text-on-surface-variant hover:text-on-surface transition-colors group">
+<span class="font-label-md text-label-md uppercase tracking-widest">Completed Goals · 13</span>
+<span class="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</button>
+</section>
+</main>
+<!-- Bottom Nav Bar (Shared Component Implementation) -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-4 bg-surface-container-lowest/90 backdrop-blur-md border-t border-surface-variant rounded-t-2xl md:hidden">
+<!-- Home (Active) -->
+<a class="flex flex-col items-center justify-center text-primary bg-primary-container/20 rounded-full py-2 px-6 transition-all scale-100" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="font-label-sm text-label-sm mt-1">Home</span>
+</a>
+<!-- Focus -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-all" href="#">
+<span class="material-symbols-outlined">target</span>
+<span class="font-label-sm text-label-sm mt-1">Focus</span>
+</a>
+<!-- FAB / Create -->
+<a class="relative -top-6 bg-primary text-on-primary w-14 h-14 rounded-full flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all" href="#">
+<span class="material-symbols-outlined" style="font-size: 28px;">add</span>
+</a>
+<!-- Network -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-all" href="#">
+<span class="material-symbols-outlined">group</span>
+<span class="font-label-sm text-label-sm mt-1">Network</span>
+</a>
+<!-- Profile -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-all" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-sm text-label-sm mt-1">Profile</span>
+</a>
+</nav>
+<!-- Desktop Nav Fallback (Hidden on Mobile) -->
+<nav class="hidden md:flex fixed top-0 right-0 h-full w-64 bg-surface-container-lowest border-l border-surface-variant flex-col p-6 z-40 pt-24">
+<!-- Links would go here for a full desktop layout, but focused on mobile fidelity as requested -->
+<p class="text-on-surface-variant font-label-md mb-8 uppercase tracking-widest">Navigation</p>
+<a class="flex items-center gap-3 text-primary font-bold mb-6 bg-primary-container/20 p-3 rounded-lg" href="#"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">home</span> Home</a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-low p-3 rounded-lg mb-6 transition-colors" href="#"><span class="material-symbols-outlined">target</span> Focus</a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-low p-3 rounded-lg mb-6 transition-colors" href="#"><span class="material-symbols-outlined">group</span> Network</a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-low p-3 rounded-lg transition-colors" href="#"><span class="material-symbols-outlined">person</span> Profile</a>
+</nav>
+</body></html>
